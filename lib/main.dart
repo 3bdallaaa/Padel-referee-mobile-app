@@ -20,6 +20,14 @@ class PadelApp extends StatefulWidget {
 
 class _PadelAppState extends State<PadelApp> {
   bool darkMode = true;
+  double speechRate = 1;
+
+  void updateSettings(bool isDark, double rate) {
+    setState(() {
+      darkMode = isDark;
+      speechRate = rate;
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -31,8 +39,27 @@ class _PadelAppState extends State<PadelApp> {
               useMaterial3: true,
               colorScheme: ColorScheme.fromSeed(seedColor: Colors.green),
             ),
-      home: PlayerSetupScreen(
-        onToggleTheme: () => setState(() => darkMode = !darkMode),
+      home: Builder(
+        builder: (context) => PlayerSetupScreen(
+          onToggleTheme: () => updateSettings(!darkMode, speechRate),
+          speechRate: speechRate,
+          darkMode: darkMode,
+          onOpenSettings: () async {
+            final result = await Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (_) => SettingsScreen(
+                  darkMode: darkMode,
+                  speechRate: speechRate,
+                ),
+              ),
+            );
+
+            if (result != null) {
+              updateSettings(result['darkMode'], result['speechRate']);
+            }
+          },
+        ),
       ),
     );
   }
@@ -41,8 +68,17 @@ class _PadelAppState extends State<PadelApp> {
 // ---------------- SETUP SCREEN ----------------
 class PlayerSetupScreen extends StatefulWidget {
   final VoidCallback onToggleTheme;
+  final double speechRate;
+  final bool darkMode;
+  final VoidCallback onOpenSettings;
 
-  const PlayerSetupScreen({super.key, required this.onToggleTheme});
+  const PlayerSetupScreen({
+    super.key,
+    required this.onToggleTheme,
+    required this.speechRate,
+    required this.darkMode,
+    required this.onOpenSettings,
+  });
 
   @override
   State<PlayerSetupScreen> createState() => _PlayerSetupScreenState();
@@ -68,7 +104,19 @@ class _PlayerSetupScreenState extends State<PlayerSetupScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text("Padel Setup")),
+      appBar: AppBar(
+        title: const Text("Padel Setup"),
+        actions: [
+          IconButton(
+            icon: Icon(widget.darkMode ? Icons.light_mode : Icons.dark_mode),
+            onPressed: widget.onToggleTheme,
+          ),
+          IconButton(
+            icon: const Icon(Icons.settings),
+            onPressed: widget.onOpenSettings,
+          )
+        ],
+      ),
       body: Padding(
         padding: const EdgeInsets.all(16),
         child: Column(
@@ -136,6 +184,7 @@ class _PlayerSetupScreenState extends State<PlayerSetupScreen> {
                       players: players,
                       startingServerIndex: startingServerIndex,
                       startingTeam: startingTeam,
+                      speechRate: widget.speechRate,
                     ),
                   ),
                 );
@@ -156,6 +205,17 @@ class MatchState {
   int gamesB = 0;
   int setsA = 0;
   int setsB = 0;
+
+  MatchState copy() {
+    final m = MatchState();
+    m.pointsA = pointsA;
+    m.pointsB = pointsB;
+    m.gamesA = gamesA;
+    m.gamesB = gamesB;
+    m.setsA = setsA;
+    m.setsB = setsB;
+    return m;
+  }
 }
 
 // ---------------- MATCH SCREEN ----------------
@@ -163,12 +223,14 @@ class MatchScreen extends StatefulWidget {
   final List<String> players;
   final int startingServerIndex;
   final Team startingTeam;
+  final double speechRate;
 
   const MatchScreen({
     super.key,
     required this.players,
     required this.startingServerIndex,
     required this.startingTeam,
+    required this.speechRate,
   });
 
   @override
@@ -197,7 +259,7 @@ class _MatchScreenState extends State<MatchScreen> {
 
     tts = FlutterTts();
     tts.setLanguage("en-US");
-    tts.setSpeechRate(0.65);
+    tts.setSpeechRate(widget.speechRate);
   }
 
   // ---------------- DISPLAY ----------------
@@ -441,7 +503,7 @@ class _MatchScreenState extends State<MatchScreen> {
     HapticFeedback.lightImpact();
 
     setState(() {
-      history.add(state);
+      history.add(state.copy());
 
       if (isA) {
         state.pointsA++;
@@ -519,6 +581,80 @@ class _MatchScreenState extends State<MatchScreen> {
             ],
           )
         ],
+      ),
+    );
+  }
+}
+
+// ---------------- SETTINGS SCREEN ----------------
+class SettingsScreen extends StatefulWidget {
+  final bool darkMode;
+  final double speechRate;
+
+  const SettingsScreen({
+    super.key,
+    required this.darkMode,
+    required this.speechRate,
+  });
+
+  @override
+  State<SettingsScreen> createState() => _SettingsScreenState();
+}
+
+class _SettingsScreenState extends State<SettingsScreen> {
+  late bool darkMode;
+  late double speechRate;
+
+  @override
+  void initState() {
+    super.initState();
+    darkMode = widget.darkMode;
+    speechRate = widget.speechRate;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text("Settings"),
+      ),
+      body: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          children: [
+            // Theme
+            // SwitchListTile(
+            //   title: const Text("Dark Mode"),
+            //   value: darkMode,
+            //   onChanged: (v) => setState(() => darkMode = v),
+            // ),
+
+            // const SizedBox(height: 20),
+
+            // Speech Speed
+            const Text("Speech Speed"),
+            Slider(
+              min: 0.5,
+              max: 1.5,
+              divisions: 10,
+              value: speechRate,
+              label: "x${speechRate.toStringAsFixed(1)}",
+              onChanged: (v) => setState(() => speechRate = v),
+            ),
+
+            const Spacer(),
+
+            ElevatedButton(
+              onPressed: () {
+                Navigator.pop(context, {
+                  'darkMode': darkMode,
+                  'speechRate': speechRate,
+                });
+              },
+              child: const Text("Save"),
+            )
+          ],
+        ),
       ),
     );
   }
