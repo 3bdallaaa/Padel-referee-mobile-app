@@ -260,6 +260,7 @@ class _MatchScreenState extends State<MatchScreen> {
     tts = FlutterTts();
     tts.setLanguage("en-US");
     tts.setSpeechRate(widget.speechRate);
+    tts.awaitSpeakCompletion(true);
   }
 
   // ---------------- DISPLAY ----------------
@@ -444,19 +445,14 @@ class _MatchScreenState extends State<MatchScreen> {
 
   Future speakScore() async {
     String score = buildScoreText(forSpeech: true);
-
-    if (score.isEmpty) return;
-
-    await tts.stop();
-    await tts.speak(score);
-
-    await Future.delayed(const Duration(milliseconds: 700));
-
     String sideText = serveSide == Side.right
         ? "serve on the right"
         : "serve on the left";
 
-    await tts.speak(sideText);
+    String textToSpeak = score.isNotEmpty ? "$score, $sideText" : sideText;
+
+    await tts.stop();
+    await tts.speak(textToSpeak);
   }
 //---------------------------------------------------------------------------------
   String buildScoreText({bool forSpeech = false}) {
@@ -491,9 +487,10 @@ class _MatchScreenState extends State<MatchScreen> {
       if (state.pointsA == state.pointsB) {
         return "$a all";
       }
-      return state.pointsA > state.pointsB
-          ? "$a $b"
-          : "$b $a";
+      if (state.pointsA > state.pointsB) {
+        return "$a $b to $teamA";
+      }
+      return "$b $a to $teamB";
     } else {
       return "$a - $b";
     }
