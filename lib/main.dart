@@ -425,13 +425,16 @@ class _MatchScreenState extends State<MatchScreen> {
         ? speakScoreText(state.pointsB)
         : uiScore(state.pointsB);
 
-    if (state.pointsA == state.pointsB) {
-      return forSpeech ? "$a all" : "$a - $b";
+    if (forSpeech) {
+      if (state.pointsA == state.pointsB) {
+        return "$a all";
+      }
+      return state.pointsA > state.pointsB
+          ? "$a $b"
+          : "$b $a";
+    } else {
+      return "$a - $b";
     }
-
-    return state.pointsA > state.pointsB
-        ? "$a $b"
-        : "$b $a";
   }
   // ---------------- POINT ----------------
   void addPoint(bool isA) {
