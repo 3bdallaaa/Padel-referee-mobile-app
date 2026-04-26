@@ -34,10 +34,23 @@ class _PadelAppState extends State<PadelApp> {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
       theme: darkMode
-          ? ThemeData.dark(useMaterial3: true)
+          ? ThemeData.dark(useMaterial3: true).copyWith(
+              cardTheme: CardThemeData(
+                elevation: 8,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(20),
+                ),
+              ),
+            )
           : ThemeData(
               useMaterial3: true,
               colorScheme: ColorScheme.fromSeed(seedColor: Colors.green),
+              cardTheme: CardThemeData(
+                elevation: 8,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(20),
+                ),
+              ),
             ),
       home: Builder(
         builder: (context) => PlayerSetupScreen(
@@ -101,98 +114,358 @@ class _PlayerSetupScreenState extends State<PlayerSetupScreen> {
 
   List<String> get players => [c1.text, c2.text, c3.text, c4.text];
 
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text("Padel Setup"),
-        actions: [
-          IconButton(
-            icon: Icon(widget.darkMode ? Icons.light_mode : Icons.dark_mode),
-            onPressed: widget.onToggleTheme,
-          ),
-          IconButton(
-            icon: const Icon(Icons.settings),
-            onPressed: widget.onOpenSettings,
-          )
-        ],
-      ),
-      body: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
+  Widget _buildPlayerCard(
+    TextEditingController controller,
+    String label,
+    Color accentColor,
+    IconData icon,
+  ) {
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(12),
+        child: Row(
           children: [
-            TextField(controller: c1, decoration: const InputDecoration(labelText: "Player 1")),
-            TextField(controller: c2, decoration: const InputDecoration(labelText: "Player 2")),
-            TextField(controller: c3, decoration: const InputDecoration(labelText: "Player 3")),
-            TextField(controller: c4, decoration: const InputDecoration(labelText: "Player 4")),
-
-            const SizedBox(height: 20),
-
-            const Text("Starting Team"),
-            Row(
-              children: [
-                Expanded(
-                  child: RadioListTile(
-                    title: const Text("Team A"),
-                    value: Team.A,
-                    groupValue: startingTeam,
-                    onChanged: (v) => setState(() => startingTeam = v!),
-                  ),
-                ),
-                Expanded(
-                  child: RadioListTile(
-                    title: const Text("Team B"),
-                    value: Team.B,
-                    groupValue: startingTeam,
-                    onChanged: (v) => setState(() => startingTeam = v!),
-                  ),
-                ),
-              ],
+            CircleAvatar(
+              backgroundColor: accentColor.withValues(alpha: 0.2),
+              child: Icon(icon, color: accentColor),
             ),
-
-            const Text("First Server"),
-            Row(
-              children: [
-                Expanded(
-                  child: RadioListTile(
-                    title: const Text("Player 1"),
-                    value: true,
-                    groupValue: firstPlayerServer,
-                    onChanged: (v) => setState(() => firstPlayerServer = v!),
-                  ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: TextField(
+                controller: controller,
+                decoration: InputDecoration(
+                  labelText: label,
+                  border: InputBorder.none,
+                  filled: true,
+                  fillColor: Colors.transparent,
                 ),
-                Expanded(
-                  child: RadioListTile(
-                    title: const Text("Player 2"),
-                    value: false,
-                    groupValue: firstPlayerServer,
-                    onChanged: (v) => setState(() => firstPlayerServer = v!),
-                  ),
+                style: const TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w500,
                 ),
-              ],
+              ),
             ),
-
-            const SizedBox(height: 20),
-
-            ElevatedButton(
-              child: const Text("Start Match"),
-              onPressed: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (_) => MatchScreen(
-                      players: players,
-                      startingServerIndex: startingServerIndex,
-                      startingTeam: startingTeam,
-                      speechRate: widget.speechRate,
-                    ),
-                  ),
-                );
-              },
-            )
           ],
         ),
       ),
+    );
+  }
+
+  Widget _buildTeamSelector() {
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Icon(Icons.emoji_events, color: Colors.amber[700]),
+                const SizedBox(width: 8),
+                const Text(
+                  "Starting Team",
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
+            Row(
+              children: [
+                Expanded(
+                  child: _buildTeamChoice(
+                    label: "Team A",
+                    team: Team.A,
+                    color: Colors.blue,
+                    icon: Icons.shield,
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: _buildTeamChoice(
+                    label: "Team B",
+                    team: Team.B,
+                    color: Colors.orange,
+                    icon: Icons.shield_outlined,
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildTeamChoice({
+    required String label,
+    required Team team,
+    required Color color,
+    required IconData icon,
+  }) {
+    final isSelected = startingTeam == team;
+    return GestureDetector(
+      onTap: () => setState(() => startingTeam = team),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
+        padding: const EdgeInsets.symmetric(vertical: 16),
+        decoration: BoxDecoration(
+          color: isSelected ? color.withValues(alpha: 0.15) : Colors.transparent,
+          border: Border.all(
+            color: isSelected ? color : Colors.grey.withValues(alpha: 0.3),
+            width: isSelected ? 2 : 1,
+          ),
+          borderRadius: BorderRadius.circular(12),
+        ),
+        child: Column(
+          children: [
+            Icon(
+              icon,
+              color: isSelected ? color : Colors.grey,
+              size: 32,
+            ),
+            const SizedBox(height: 8),
+            Text(
+              label,
+              style: TextStyle(
+                color: isSelected ? color : Colors.grey,
+                fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildServerSelector() {
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Icon(Icons.sports_tennis, color: Colors.green[700]),
+                const SizedBox(width: 8),
+                const Text(
+                  "First Server",
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
+            Row(
+              children: [
+                Expanded(
+                  child: _buildServerChoice(
+                    label: "Player 1",
+                    isSelected: firstPlayerServer,
+                    onTap: () => setState(() => firstPlayerServer = true),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: _buildServerChoice(
+                    label: "Player 2",
+                    isSelected: !firstPlayerServer,
+                    onTap: () => setState(() => firstPlayerServer = false),
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildServerChoice({
+    required String label,
+    required bool isSelected,
+    required VoidCallback onTap,
+  }) {
+    return GestureDetector(
+      onTap: onTap,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
+        padding: const EdgeInsets.symmetric(vertical: 16),
+        decoration: BoxDecoration(
+          color: isSelected
+              ? Colors.green.withValues(alpha: 0.15)
+              : Colors.transparent,
+          border: Border.all(
+            color: isSelected
+                ? Colors.green
+                : Colors.grey.withValues(alpha: 0.3),
+            width: isSelected ? 2 : 1,
+          ),
+          borderRadius: BorderRadius.circular(12),
+        ),
+        child: Column(
+          children: [
+            Icon(
+              Icons.person,
+              color: isSelected ? Colors.green : Colors.grey,
+              size: 32,
+            ),
+            const SizedBox(height: 8),
+            Text(
+              label,
+              style: TextStyle(
+                color: isSelected ? Colors.green : Colors.grey,
+                fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      body: CustomScrollView(
+        slivers: [
+          SliverAppBar(
+            expandedHeight: 120,
+            floating: false,
+            pinned: true,
+            flexibleSpace: FlexibleSpaceBar(
+              title: const Text(
+                "Padel Match",
+                style: TextStyle(fontWeight: FontWeight.bold),
+              ),
+              background: Container(
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    colors: [
+                      Colors.green[800]!,
+                      Colors.green[600]!,
+                    ],
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                  ),
+                ),
+              ),
+            ),
+            actions: [
+              IconButton(
+                icon: Icon(
+                  widget.darkMode ? Icons.light_mode : Icons.dark_mode,
+                  color: Colors.white,
+                ),
+                onPressed: widget.onToggleTheme,
+              ),
+              IconButton(
+                icon: const Icon(Icons.settings, color: Colors.white),
+                onPressed: widget.onOpenSettings,
+              ),
+            ],
+          ),
+          SliverPadding(
+            padding: const EdgeInsets.all(16),
+            sliver: SliverList(
+              delegate: SliverChildListDelegate([
+                // Team A Players
+                _buildSectionHeader("Team A", Colors.blue),
+                const SizedBox(height: 8),
+                _buildPlayerCard(c1, "Player 1", Colors.blue, Icons.person),
+                const SizedBox(height: 8),
+                _buildPlayerCard(c2, "Player 2", Colors.blue, Icons.person_outline),
+                const SizedBox(height: 20),
+
+                // Team B Players
+                _buildSectionHeader("Team B", Colors.orange),
+                const SizedBox(height: 8),
+                _buildPlayerCard(c3, "Player 3", Colors.orange, Icons.person),
+                const SizedBox(height: 8),
+                _buildPlayerCard(c4, "Player 4", Colors.orange, Icons.person_outline),
+                const SizedBox(height: 20),
+
+                _buildTeamSelector(),
+                const SizedBox(height: 12),
+                _buildServerSelector(),
+                const SizedBox(height: 24),
+
+                SizedBox(
+                  width: double.infinity,
+                  height: 56,
+                  child: ElevatedButton(
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.green[700],
+                      foregroundColor: Colors.white,
+                      elevation: 4,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(16),
+                      ),
+                    ),
+                    onPressed: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => MatchScreen(
+                            players: players,
+                            startingServerIndex: startingServerIndex,
+                            startingTeam: startingTeam,
+                            speechRate: widget.speechRate,
+                          ),
+                        ),
+                      );
+                    },
+                    child: const Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(Icons.play_arrow),
+                        SizedBox(width: 8),
+                        Text(
+                          "Start Match",
+                          style: TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 20),
+              ]),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSectionHeader(String title, Color color) {
+    return Row(
+      children: [
+        Container(
+          width: 4,
+          height: 24,
+          decoration: BoxDecoration(
+            color: color,
+            borderRadius: BorderRadius.circular(2),
+          ),
+        ),
+        const SizedBox(width: 8),
+        Text(
+          title,
+          style: TextStyle(
+            fontSize: 20,
+            fontWeight: FontWeight.bold,
+            color: color,
+          ),
+        ),
+      ],
     );
   }
 }
@@ -255,7 +528,7 @@ class _MatchScreenState extends State<MatchScreen> {
   void initState() {
     super.initState();
     serverIndex = widget.startingServerIndex;
-    serveOrder.add(serverIndex); // Game 1
+    serveOrder.add(serverIndex);
 
     tts = FlutterTts();
     tts.setLanguage("en-US");
@@ -263,7 +536,6 @@ class _MatchScreenState extends State<MatchScreen> {
     tts.awaitSpeakCompletion(true);
   }
 
-  // ---------------- DISPLAY ----------------
   String uiScore(int p) {
     if (p == 0) return "0";
     if (p == 1) return "15";
@@ -282,48 +554,59 @@ class _MatchScreenState extends State<MatchScreen> {
 
   String get serverName => widget.players[serverIndex];
 
-  // ---------------- TENNIS BALL ----------------
   Widget serveBall() {
     return AnimatedAlign(
       duration: const Duration(milliseconds: 300),
-      alignment:
-          serveSide == Side.right ? Alignment.centerRight : Alignment.centerLeft,
-      child: const Icon(Icons.sports_tennis, size: 50, color: Colors.green),
+      alignment: serveSide == Side.right
+          ? Alignment.centerRight
+          : Alignment.centerLeft,
+      child: Container(
+        padding: const EdgeInsets.all(8),
+        decoration: BoxDecoration(
+          color: Colors.yellow[700],
+          shape: BoxShape.circle,
+          boxShadow: [
+            BoxShadow(
+              color: Colors.yellow[700]!.withValues(alpha: 0.4),
+              blurRadius: 12,
+              spreadRadius: 2,
+            ),
+          ],
+        ),
+        child: const Icon(Icons.sports_tennis, size: 36, color: Colors.white),
+      ),
     );
   }
 
-  // ---------------- SERVER ROTATION FIXED ----------------
   void rotateServerAfterGame() {
-
-  // GAME 2 → choose the server of second team
     if (serveOrder.length == 1) {
       showServerDialog();
       return;
     }
 
-    // GAME 3 → نفس الفريق الأول لكن اللاعب التاني
     if (serveOrder.length == 2) {
       int first = serveOrder[0];
-
-      int next = (first == 0) ? 1
-                : (first == 1) ? 0
-                : (first == 2) ? 3
-                : 2;
-
+      int next = (first == 0)
+          ? 1
+          : (first == 1)
+              ? 0
+              : (first == 2)
+                  ? 3
+                  : 2;
       serveOrder.add(next);
       serverIndex = next;
       return;
     }
 
-    // GAME 4 → الفريق التاني اللاعب التاني
     if (serveOrder.length == 3) {
       int second = serveOrder[1];
-
-      int next = (second == 0) ? 1
-                : (second == 1) ? 0
-                : (second == 2) ? 3
-                : 2;
-
+      int next = (second == 0)
+          ? 1
+          : (second == 1)
+              ? 0
+              : (second == 2)
+                  ? 3
+                  : 2;
       serveOrder.add(next);
       serverIndex = next;
       return;
@@ -332,8 +615,6 @@ class _MatchScreenState extends State<MatchScreen> {
 
   void showServerDialog() {
     int firstServer = serveOrder[0];
-
-    // choose the server in game 2 
     List<int> allowedPlayers;
 
     if (firstServer == 0 || firstServer == 1) {
@@ -346,21 +627,37 @@ class _MatchScreenState extends State<MatchScreen> {
       context: context,
       barrierDismissible: false,
       builder: (_) => AlertDialog(
-        title: const Text("Choose server for Game 2"),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(20),
+        ),
+        title: const Text("Choose Server for Game 2"),
         content: const Text("Select from the opposite team"),
         actions: [
           for (int i in allowedPlayers)
-            TextButton(
-              onPressed: () {
-                setState(() {
-                  serveOrder.add(i);        // Game 2
-                  buildFullServeOrder();   // complete the queue
-                  serverIndex = i;
-                });
-                Navigator.pop(context);
-              },
-              child: Text(widget.players[i]),
-            )
+            Padding(
+              padding: const EdgeInsets.symmetric(vertical: 4),
+              child: SizedBox(
+                width: double.infinity,
+                child: ElevatedButton(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.orange[700],
+                    foregroundColor: Colors.white,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                  ),
+                  onPressed: () {
+                    setState(() {
+                      serveOrder.add(i);
+                      buildFullServeOrder();
+                      serverIndex = i;
+                    });
+                    Navigator.pop(context);
+                  },
+                  child: Text(widget.players[i]),
+                ),
+              ),
+            ),
         ],
       ),
     );
@@ -372,24 +669,28 @@ class _MatchScreenState extends State<MatchScreen> {
     int first = serveOrder[0];
     int second = serveOrder[1];
 
-    // other player of starting team 
-    int third = (first == 0) ? 1
-              : (first == 1) ? 0
-              : (first == 2) ? 3
-              : 2;
+    int third = (first == 0)
+        ? 1
+        : (first == 1)
+            ? 0
+            : (first == 2)
+                ? 3
+                : 2;
 
-    // other player of other team
-    int fourth = (second == 0) ? 1
-              : (second == 1) ? 0
-              : (second == 2) ? 3
-              : 2;
+    int fourth = (second == 0)
+        ? 1
+        : (second == 1)
+            ? 0
+            : (second == 2)
+                ? 3
+                : 2;
 
     serveOrder = [first, second, third, fourth];
   }
+
   void nextServer() {
     currentGameIndex++;
 
-    // choose server in Game 2
     if (currentGameIndex == 1 && serveOrder.length == 1) {
       showServerDialog();
       return;
@@ -399,7 +700,7 @@ class _MatchScreenState extends State<MatchScreen> {
       serverIndex = serveOrder[currentGameIndex % 4];
     }
   }
-  // ---------------- GAME LOGIC ----------------
+
   void checkGame() {
     if (state.pointsA >= 4 || state.pointsB >= 4) {
       int diff = state.pointsA - state.pointsB;
@@ -439,7 +740,6 @@ class _MatchScreenState extends State<MatchScreen> {
   Future speakGameWinner(String team) async {
     String a = "${widget.players[0]} and ${widget.players[1]}";
     String b = "${widget.players[2]} and ${widget.players[3]}";
-
     await tts.speak(team == "A" ? "$a won" : "$b won");
   }
 
@@ -454,12 +754,11 @@ class _MatchScreenState extends State<MatchScreen> {
     await tts.stop();
     await tts.speak(textToSpeak);
   }
-//---------------------------------------------------------------------------------
+
   String buildScoreText({bool forSpeech = false}) {
     String teamA = "${widget.players[0]} and ${widget.players[1]}";
     String teamB = "${widget.players[2]} and ${widget.players[3]}";
 
-    // Deuce / Advantage
     if (state.pointsA >= 3 && state.pointsB >= 3) {
       if (state.pointsA == state.pointsB) {
         return "Deuce";
@@ -470,18 +769,12 @@ class _MatchScreenState extends State<MatchScreen> {
       }
     }
 
-    // Skip love all for speech
     if (forSpeech && state.pointsA == 0 && state.pointsB == 0) {
       return "";
     }
 
-    String a = forSpeech
-        ? speakScoreText(state.pointsA)
-        : uiScore(state.pointsA);
-
-    String b = forSpeech
-        ? speakScoreText(state.pointsB)
-        : uiScore(state.pointsB);
+    String a = forSpeech ? speakScoreText(state.pointsA) : uiScore(state.pointsA);
+    String b = forSpeech ? speakScoreText(state.pointsB) : uiScore(state.pointsB);
 
     if (forSpeech) {
       if (state.pointsA == state.pointsB) {
@@ -495,7 +788,7 @@ class _MatchScreenState extends State<MatchScreen> {
       return "$a - $b";
     }
   }
-  // ---------------- POINT ----------------
+
   void addPoint(bool isA) {
     HapticFeedback.lightImpact();
 
@@ -508,8 +801,7 @@ class _MatchScreenState extends State<MatchScreen> {
         state.pointsB++;
       }
 
-      serveSide =
-          serveSide == Side.right ? Side.left : Side.right;
+      serveSide = serveSide == Side.right ? Side.left : Side.right;
 
       checkGame();
     });
@@ -517,7 +809,6 @@ class _MatchScreenState extends State<MatchScreen> {
     speakScore();
   }
 
-  // ---------------- UNDO ----------------
   void undo() {
     if (history.isNotEmpty) {
       setState(() {
@@ -526,57 +817,288 @@ class _MatchScreenState extends State<MatchScreen> {
     }
   }
 
-  // ---------------- UI ----------------
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text("Padel Match"),
-        actions: [
-          IconButton(onPressed: undo, icon: const Icon(Icons.undo))
-        ],
-      ),
-      body: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Text("Sets: ${state.setsA} - ${state.setsB}"),
-          Text("Games: ${state.gamesA} - ${state.gamesB}"),
-
-          const SizedBox(height: 10),
-
-          serveBall(),
-
-          Text(
-            buildScoreText(),
-            textAlign: TextAlign.center,
-            style: const TextStyle(
-              fontSize: 36,
-              fontWeight: FontWeight.bold,
-            ),
+  Widget _buildScoreCard() {
+    return Card(
+      elevation: 12,
+      child: Container(
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(20),
+          gradient: LinearGradient(
+            colors: [
+              Colors.grey[900]!,
+              Colors.grey[850]!,
+            ],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
           ),
-
-          const SizedBox(height: 10),
-
-          Text("Server: $serverName"),
-
-          const SizedBox(height: 30),
-
-          Row(
+        ),
+        child: Padding(
+          padding: const EdgeInsets.all(20),
+          child: Column(
             children: [
-              Expanded(
-                child: ElevatedButton(
-                  onPressed: () => addPoint(true),
-                  child: Text("${widget.players[0]} / ${widget.players[1]}"),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                children: [
+                  _buildStatColumn("SETS", state.setsA, state.setsB, Colors.blue),
+                  Container(
+                    height: 50,
+                    width: 1,
+                    color: Colors.grey[700],
+                  ),
+                  _buildStatColumn("GAMES", state.gamesA, state.gamesB, Colors.orange),
+                ],
+              ),
+              const Divider(height: 32, color: Colors.grey),
+              Text(
+                "CURRENT SCORE",
+                style: TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.grey[500],
+                  letterSpacing: 2,
                 ),
               ),
-              Expanded(
-                child: ElevatedButton(
-                  onPressed: () => addPoint(false),
-                  child: Text("${widget.players[2]} / ${widget.players[3]}"),
+              const SizedBox(height: 12),
+              Text(
+                buildScoreText(),
+                textAlign: TextAlign.center,
+                style: const TextStyle(
+                  fontSize: 48,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.white,
+                ),
+              ),
+              const SizedBox(height: 16),
+              serveBall(),
+              const SizedBox(height: 12),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                decoration: BoxDecoration(
+                  color: Colors.green.withValues(alpha: 0.2),
+                  borderRadius: BorderRadius.circular(20),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const Icon(Icons.sports_tennis, color: Colors.green, size: 18),
+                    const SizedBox(width: 8),
+                    Text(
+                      "Server: $serverName",
+                      style: const TextStyle(
+                        color: Colors.green,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ],
                 ),
               ),
             ],
-          )
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildStatColumn(String label, int valueA, int valueB, Color accentColor) {
+    return Column(
+      children: [
+        Text(
+          label,
+          style: TextStyle(
+            fontSize: 12,
+            fontWeight: FontWeight.bold,
+            color: Colors.grey[500],
+            letterSpacing: 2,
+          ),
+        ),
+        const SizedBox(height: 8),
+        Row(
+          children: [
+            Text(
+              "$valueA",
+              style: TextStyle(
+                fontSize: 28,
+                fontWeight: FontWeight.bold,
+                color: Colors.blue[300],
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 12),
+              child: Text(
+                "-",
+                style: TextStyle(
+                  fontSize: 24,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.grey[600],
+                ),
+              ),
+            ),
+            Text(
+              "$valueB",
+              style: TextStyle(
+                fontSize: 28,
+                fontWeight: FontWeight.bold,
+                color: Colors.orange[300],
+              ),
+            ),
+          ],
+        ),
+      ],
+    );
+  }
+
+  Widget _buildTeamCard({
+    required String player1,
+    required String player2,
+    required bool isTeamA,
+    required VoidCallback onPressed,
+  }) {
+    final color = isTeamA ? Colors.blue : Colors.orange;
+    return Expanded(
+      child: Card(
+        elevation: 8,
+        child: InkWell(
+          onTap: onPressed,
+          borderRadius: BorderRadius.circular(20),
+          child: Container(
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(20),
+              gradient: LinearGradient(
+                colors: [
+                  color.withValues(alpha: 0.8),
+                  color.withValues(alpha: 0.6),
+                ],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+              ),
+            ),
+            child: Padding(
+              padding: const EdgeInsets.all(20),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(
+                    isTeamA ? Icons.shield : Icons.shield_outlined,
+                    color: Colors.white,
+                    size: 40,
+                  ),
+                  const SizedBox(height: 12),
+                  Text(
+                    "Team ${isTeamA ? "A" : "B"}",
+                    style: const TextStyle(
+                      fontSize: 20,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.white,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    player1,
+                    style: TextStyle(
+                      fontSize: 16,
+                      color: Colors.white.withValues(alpha: 0.9),
+                    ),
+                  ),
+                  Text(
+                    player2,
+                    style: TextStyle(
+                      fontSize: 16,
+                      color: Colors.white.withValues(alpha: 0.9),
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 20,
+                      vertical: 10,
+                    ),
+                    decoration: BoxDecoration(
+                      color: Colors.white.withValues(alpha: 0.2),
+                      borderRadius: BorderRadius.circular(20),
+                    ),
+                    child: const Text(
+                      "+ POINT",
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontWeight: FontWeight.bold,
+                        letterSpacing: 1,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      body: CustomScrollView(
+        slivers: [
+          SliverAppBar(
+            expandedHeight: 100,
+            floating: false,
+            pinned: true,
+            leading: IconButton(
+              icon: const Icon(Icons.arrow_back),
+              onPressed: () => Navigator.pop(context),
+            ),
+            flexibleSpace: FlexibleSpaceBar(
+              title: const Text(
+                "Match in Progress",
+                style: TextStyle(fontWeight: FontWeight.bold),
+              ),
+              background: Container(
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    colors: [
+                      Colors.green[800]!,
+                      Colors.green[600]!,
+                    ],
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                  ),
+                ),
+              ),
+            ),
+            actions: [
+              IconButton(
+                icon: const Icon(Icons.undo),
+                onPressed: undo,
+              ),
+            ],
+          ),
+          SliverPadding(
+            padding: const EdgeInsets.all(16),
+            sliver: SliverList(
+              delegate: SliverChildListDelegate([
+                _buildScoreCard(),
+                const SizedBox(height: 24),
+                Row(
+                  children: [
+                    _buildTeamCard(
+                      player1: widget.players[0],
+                      player2: widget.players[1],
+                      isTeamA: true,
+                      onPressed: () => addPoint(true),
+                    ),
+                    const SizedBox(width: 12),
+                    _buildTeamCard(
+                      player1: widget.players[2],
+                      player2: widget.players[3],
+                      isTeamA: false,
+                      onPressed: () => addPoint(false),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 20),
+              ]),
+            ),
+          ),
         ],
       ),
     );
@@ -619,40 +1141,87 @@ class _SettingsScreenState extends State<SettingsScreen> {
         padding: const EdgeInsets.all(16),
         child: Column(
           children: [
-            // Theme
-            // SwitchListTile(
-            //   title: const Text("Dark Mode"),
-            //   value: darkMode,
-            //   onChanged: (v) => setState(() => darkMode = v),
-            // ),
-
-            // const SizedBox(height: 20),
-
-            // Speech Speed
-            const Text("Speech Speed"),
-            Slider(
-              min: 0.5,
-              max: 1.5,
-              divisions: 10,
-              value: speechRate,
-              label: "x${speechRate.toStringAsFixed(1)}",
-              onChanged: (v) => setState(() => speechRate = v),
+            Card(
+              child: Padding(
+                padding: const EdgeInsets.all(20),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Icon(Icons.speed, color: Colors.green[700]),
+                        const SizedBox(width: 8),
+                        const Text(
+                          "Speech Speed",
+                          style: TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 16),
+                    Slider(
+                      min: 0.5,
+                      max: 1.5,
+                      divisions: 10,
+                      value: speechRate,
+                      label: "x${speechRate.toStringAsFixed(1)}",
+                      onChanged: (v) => setState(() => speechRate = v),
+                    ),
+                    Center(
+                      child: Text(
+                        "${speechRate.toStringAsFixed(1)}x",
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.green[700],
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
             ),
-
             const Spacer(),
-
-            ElevatedButton(
-              onPressed: () {
-                Navigator.pop(context, {
-                  'darkMode': darkMode,
-                  'speechRate': speechRate,
-                });
-              },
-              child: const Text("Save"),
-            )
+            SizedBox(
+              width: double.infinity,
+              height: 56,
+              child: ElevatedButton(
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.green[700],
+                  foregroundColor: Colors.white,
+                  elevation: 4,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                ),
+                onPressed: () {
+                  Navigator.pop(context, {
+                    'darkMode': darkMode,
+                    'speechRate': speechRate,
+                  });
+                },
+                child: const Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(Icons.save),
+                    SizedBox(width: 8),
+                    Text(
+                      "Save",
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
           ],
         ),
       ),
     );
   }
 }
+
