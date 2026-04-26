@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_tts/flutter_tts.dart';
+import 'match_history.dart';
 
 void main() {
   runApp(const PadelApp());
@@ -357,6 +358,18 @@ class _PlayerSetupScreenState extends State<PlayerSetupScreen> {
               ),
             ),
             actions: [
+              IconButton(
+                icon: const Icon(Icons.history, color: Colors.white),
+                tooltip: 'Match History',
+                onPressed: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => const HistoryScreen(),
+                    ),
+                  );
+                },
+              ),
               IconButton(
                 icon: Icon(
                   widget.darkMode ? Icons.light_mode : Icons.dark_mode,
@@ -817,6 +830,65 @@ class _MatchScreenState extends State<MatchScreen> {
     }
   }
 
+  Future<void> endMatch() async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(20),
+        ),
+        title: const Text("End Match"),
+        content: const Text("Are you sure you want to end this match and save the result?"),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text("Cancel"),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.red,
+              foregroundColor: Colors.white,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
+            ),
+            onPressed: () => Navigator.pop(ctx, true),
+            child: const Text("End & Save"),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed != true) return;
+
+    final winner = state.setsA > state.setsB
+        ? 'A'
+        : state.setsB > state.setsA
+            ? 'B'
+            : (state.gamesA > state.gamesB
+                ? 'A'
+                : state.gamesB > state.gamesA
+                    ? 'B'
+                    : 'A');
+
+    final record = MatchRecord(
+      id: DateTime.now().millisecondsSinceEpoch.toString(),
+      dateTime: DateTime.now(),
+      players: widget.players,
+      setsA: state.setsA,
+      setsB: state.setsB,
+      gamesA: state.gamesA,
+      gamesB: state.gamesB,
+      winner: winner,
+    );
+
+    await HistoryService.saveMatch(record);
+
+    if (mounted) {
+      Navigator.pop(context);
+    }
+  }
+
   Widget _buildScoreCard() {
     return Card(
       elevation: 12,
@@ -1066,6 +1138,11 @@ class _MatchScreenState extends State<MatchScreen> {
               ),
             ),
             actions: [
+              IconButton(
+                icon: const Icon(Icons.save_alt),
+                tooltip: 'End Match',
+                onPressed: endMatch,
+              ),
               IconButton(
                 icon: const Icon(Icons.undo),
                 onPressed: undo,

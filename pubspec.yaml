@@ -29,6 +29,7 @@ environment:
 # versions available, run `flutter pub outdated`.
 dependencies:
   flutter_tts: ^3.8.5
+  shared_preferences: ^2.2.3
   flutter:
     sdk: flutter
 
