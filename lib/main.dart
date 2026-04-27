@@ -728,12 +728,14 @@ class _MatchScreenState extends State<MatchScreen> {
         state.gamesA++;
         state.pointsA = 0;
         state.pointsB = 0;
+        serveSide = Side.right;
         nextServer();
         speakGameWinner("A");
       } else if (diff <= -2) {
         state.gamesB++;
         state.pointsA = 0;
         state.pointsB = 0;
+        serveSide = Side.right;
         nextServer();
         speakGameWinner("B");
       }
