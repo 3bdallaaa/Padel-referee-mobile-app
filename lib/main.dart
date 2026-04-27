@@ -23,7 +23,7 @@ class PadelApp extends StatefulWidget {
 
 class _PadelAppState extends State<PadelApp> {
   bool darkMode = true;
-  double speechRate = 1;
+  double speechRate = 0.6;
 
   void updateSettings(bool isDark, double rate) {
     setState(() {
@@ -1263,16 +1263,16 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     ),
                     const SizedBox(height: 16),
                     Slider(
-                      min: 0.5,
-                      max: 1.5,
+                      min: 0.1,
+                      max: 1.1,
                       divisions: 10,
                       value: speechRate,
-                      label: "x${speechRate.toStringAsFixed(1)}",
+                      label: "x${(speechRate + 0.4).toStringAsFixed(1)}",
                       onChanged: (v) => setState(() => speechRate = v),
                     ),
                     Center(
                       child: Text(
-                        "${speechRate.toStringAsFixed(1)}x",
+                        "${(speechRate + 0.4).toStringAsFixed(1)}x",
                         style: TextStyle(
                           fontSize: 16,
                           fontWeight: FontWeight.bold,
