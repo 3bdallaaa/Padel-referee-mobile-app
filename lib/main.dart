@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_tts/flutter_tts.dart';
+import 'package:audioplayers/audioplayers.dart';
 import 'match_history.dart';
 
 void main() {
@@ -9,6 +10,7 @@ void main() {
 
 // ---------------- ENUMS ----------------
 enum Team { A, B }
+
 enum Side { right, left }
 
 // ---------------- APP ----------------
@@ -62,10 +64,8 @@ class _PadelAppState extends State<PadelApp> {
             final result = await Navigator.push(
               context,
               MaterialPageRoute(
-                builder: (_) => SettingsScreen(
-                  darkMode: darkMode,
-                  speechRate: speechRate,
-                ),
+                builder: (_) =>
+                    SettingsScreen(darkMode: darkMode, speechRate: speechRate),
               ),
             );
 
@@ -165,10 +165,7 @@ class _PlayerSetupScreenState extends State<PlayerSetupScreen> {
                 const SizedBox(width: 8),
                 const Text(
                   "Starting Team",
-                  style: TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
-                  ),
+                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                 ),
               ],
             ),
@@ -213,7 +210,9 @@ class _PlayerSetupScreenState extends State<PlayerSetupScreen> {
         duration: const Duration(milliseconds: 200),
         padding: const EdgeInsets.symmetric(vertical: 16),
         decoration: BoxDecoration(
-          color: isSelected ? color.withValues(alpha: 0.15) : Colors.transparent,
+          color: isSelected
+              ? color.withValues(alpha: 0.15)
+              : Colors.transparent,
           border: Border.all(
             color: isSelected ? color : Colors.grey.withValues(alpha: 0.3),
             width: isSelected ? 2 : 1,
@@ -222,11 +221,7 @@ class _PlayerSetupScreenState extends State<PlayerSetupScreen> {
         ),
         child: Column(
           children: [
-            Icon(
-              icon,
-              color: isSelected ? color : Colors.grey,
-              size: 32,
-            ),
+            Icon(icon, color: isSelected ? color : Colors.grey, size: 32),
             const SizedBox(height: 8),
             Text(
               label,
@@ -254,10 +249,7 @@ class _PlayerSetupScreenState extends State<PlayerSetupScreen> {
                 const SizedBox(width: 8),
                 const Text(
                   "First Server",
-                  style: TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
-                  ),
+                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                 ),
               ],
             ),
@@ -347,10 +339,7 @@ class _PlayerSetupScreenState extends State<PlayerSetupScreen> {
               background: Container(
                 decoration: BoxDecoration(
                   gradient: LinearGradient(
-                    colors: [
-                      Colors.green[800]!,
-                      Colors.green[600]!,
-                    ],
+                    colors: [Colors.green[800]!, Colors.green[600]!],
                     begin: Alignment.topLeft,
                     end: Alignment.bottomRight,
                   ),
@@ -364,9 +353,7 @@ class _PlayerSetupScreenState extends State<PlayerSetupScreen> {
                 onPressed: () {
                   Navigator.push(
                     context,
-                    MaterialPageRoute(
-                      builder: (_) => const HistoryScreen(),
-                    ),
+                    MaterialPageRoute(builder: (_) => const HistoryScreen()),
                   );
                 },
               ),
@@ -392,7 +379,12 @@ class _PlayerSetupScreenState extends State<PlayerSetupScreen> {
                 const SizedBox(height: 8),
                 _buildPlayerCard(c1, "Player 1", Colors.blue, Icons.person),
                 const SizedBox(height: 8),
-                _buildPlayerCard(c2, "Player 2", Colors.blue, Icons.person_outline),
+                _buildPlayerCard(
+                  c2,
+                  "Player 2",
+                  Colors.blue,
+                  Icons.person_outline,
+                ),
                 const SizedBox(height: 20),
 
                 // Team B Players
@@ -400,7 +392,12 @@ class _PlayerSetupScreenState extends State<PlayerSetupScreen> {
                 const SizedBox(height: 8),
                 _buildPlayerCard(c3, "Player 3", Colors.orange, Icons.person),
                 const SizedBox(height: 8),
-                _buildPlayerCard(c4, "Player 4", Colors.orange, Icons.person_outline),
+                _buildPlayerCard(
+                  c4,
+                  "Player 4",
+                  Colors.orange,
+                  Icons.person_outline,
+                ),
                 const SizedBox(height: 20),
 
                 _buildTeamSelector(),
@@ -526,6 +523,7 @@ class MatchScreen extends StatefulWidget {
 class _MatchScreenState extends State<MatchScreen> {
   MatchState state = MatchState();
   late FlutterTts tts;
+  late AudioPlayer audioPlayer;
 
   Side serveSide = Side.right;
 
@@ -547,6 +545,16 @@ class _MatchScreenState extends State<MatchScreen> {
     tts.setLanguage("en-US");
     tts.setSpeechRate(widget.speechRate);
     tts.awaitSpeakCompletion(true);
+
+    audioPlayer = AudioPlayer();
+
+    speakScore();
+  }
+
+  @override
+  void dispose() {
+    audioPlayer.dispose();
+    super.dispose();
   }
 
   String uiScore(int p) {
@@ -602,10 +610,10 @@ class _MatchScreenState extends State<MatchScreen> {
       int next = (first == 0)
           ? 1
           : (first == 1)
-              ? 0
-              : (first == 2)
-                  ? 3
-                  : 2;
+          ? 0
+          : (first == 2)
+          ? 3
+          : 2;
       serveOrder.add(next);
       serverIndex = next;
       return;
@@ -616,10 +624,10 @@ class _MatchScreenState extends State<MatchScreen> {
       int next = (second == 0)
           ? 1
           : (second == 1)
-              ? 0
-              : (second == 2)
-                  ? 3
-                  : 2;
+          ? 0
+          : (second == 2)
+          ? 3
+          : 2;
       serveOrder.add(next);
       serverIndex = next;
       return;
@@ -640,9 +648,7 @@ class _MatchScreenState extends State<MatchScreen> {
       context: context,
       barrierDismissible: false,
       builder: (_) => AlertDialog(
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(20),
-        ),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
         title: const Text("Choose Server for Game 2"),
         content: const Text("Select from the opposite team"),
         actions: [
@@ -685,18 +691,18 @@ class _MatchScreenState extends State<MatchScreen> {
     int third = (first == 0)
         ? 1
         : (first == 1)
-            ? 0
-            : (first == 2)
-                ? 3
-                : 2;
+        ? 0
+        : (first == 2)
+        ? 3
+        : 2;
 
     int fourth = (second == 0)
         ? 1
         : (second == 1)
-            ? 0
-            : (second == 2)
-                ? 3
-                : 2;
+        ? 0
+        : (second == 2)
+        ? 3
+        : 2;
 
     serveOrder = [first, second, third, fourth];
   }
@@ -757,6 +763,11 @@ class _MatchScreenState extends State<MatchScreen> {
   }
 
   Future speakScore() async {
+    if (state.pointsA == 0 && state.pointsB == 0) {
+      await audioPlayer.play(AssetSource('sounds/referee_whistle.mp3'));
+      await Future.delayed(const Duration(seconds: 2));
+    }
+
     String score = buildScoreText(forSpeech: true);
     String sideText = serveSide == Side.right
         ? "serve on the right"
@@ -786,8 +797,12 @@ class _MatchScreenState extends State<MatchScreen> {
       return "";
     }
 
-    String a = forSpeech ? speakScoreText(state.pointsA) : uiScore(state.pointsA);
-    String b = forSpeech ? speakScoreText(state.pointsB) : uiScore(state.pointsB);
+    String a = forSpeech
+        ? speakScoreText(state.pointsA)
+        : uiScore(state.pointsA);
+    String b = forSpeech
+        ? speakScoreText(state.pointsB)
+        : uiScore(state.pointsB);
 
     if (forSpeech) {
       if (state.pointsA == state.pointsB) {
@@ -834,11 +849,11 @@ class _MatchScreenState extends State<MatchScreen> {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(20),
-        ),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
         title: const Text("End Match"),
-        content: const Text("Are you sure you want to end this match and save the result?"),
+        content: const Text(
+          "Are you sure you want to end this match and save the result?",
+        ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx, false),
@@ -864,12 +879,12 @@ class _MatchScreenState extends State<MatchScreen> {
     final winner = state.setsA > state.setsB
         ? 'A'
         : state.setsB > state.setsA
-            ? 'B'
-            : (state.gamesA > state.gamesB
-                ? 'A'
-                : state.gamesB > state.gamesA
-                    ? 'B'
-                    : 'A');
+        ? 'B'
+        : (state.gamesA > state.gamesB
+              ? 'A'
+              : state.gamesB > state.gamesA
+              ? 'B'
+              : 'A');
 
     final record = MatchRecord(
       id: DateTime.now().millisecondsSinceEpoch.toString(),
@@ -896,10 +911,7 @@ class _MatchScreenState extends State<MatchScreen> {
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(20),
           gradient: LinearGradient(
-            colors: [
-              Colors.grey[900]!,
-              Colors.grey[850]!,
-            ],
+            colors: [Colors.grey[900]!, Colors.grey[850]!],
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
           ),
@@ -911,13 +923,19 @@ class _MatchScreenState extends State<MatchScreen> {
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                 children: [
-                  _buildStatColumn("SETS", state.setsA, state.setsB, Colors.blue),
-                  Container(
-                    height: 50,
-                    width: 1,
-                    color: Colors.grey[700],
+                  _buildStatColumn(
+                    "SETS",
+                    state.setsA,
+                    state.setsB,
+                    Colors.blue,
                   ),
-                  _buildStatColumn("GAMES", state.gamesA, state.gamesB, Colors.orange),
+                  Container(height: 50, width: 1, color: Colors.grey[700]),
+                  _buildStatColumn(
+                    "GAMES",
+                    state.gamesA,
+                    state.gamesB,
+                    Colors.orange,
+                  ),
                 ],
               ),
               const Divider(height: 32, color: Colors.grey),
@@ -944,7 +962,10 @@ class _MatchScreenState extends State<MatchScreen> {
               serveBall(),
               const SizedBox(height: 12),
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 8,
+                ),
                 decoration: BoxDecoration(
                   color: Colors.green.withValues(alpha: 0.2),
                   borderRadius: BorderRadius.circular(20),
@@ -952,7 +973,11 @@ class _MatchScreenState extends State<MatchScreen> {
                 child: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    const Icon(Icons.sports_tennis, color: Colors.green, size: 18),
+                    const Icon(
+                      Icons.sports_tennis,
+                      color: Colors.green,
+                      size: 18,
+                    ),
                     const SizedBox(width: 8),
                     Text(
                       "Server: $serverName",
@@ -971,7 +996,12 @@ class _MatchScreenState extends State<MatchScreen> {
     );
   }
 
-  Widget _buildStatColumn(String label, int valueA, int valueB, Color accentColor) {
+  Widget _buildStatColumn(
+    String label,
+    int valueA,
+    int valueB,
+    Color accentColor,
+  ) {
     return Column(
       children: [
         Text(
@@ -1127,10 +1157,7 @@ class _MatchScreenState extends State<MatchScreen> {
               background: Container(
                 decoration: BoxDecoration(
                   gradient: LinearGradient(
-                    colors: [
-                      Colors.green[800]!,
-                      Colors.green[600]!,
-                    ],
+                    colors: [Colors.green[800]!, Colors.green[600]!],
                     begin: Alignment.topLeft,
                     end: Alignment.bottomRight,
                   ),
@@ -1143,10 +1170,7 @@ class _MatchScreenState extends State<MatchScreen> {
                 tooltip: 'End Match',
                 onPressed: endMatch,
               ),
-              IconButton(
-                icon: const Icon(Icons.undo),
-                onPressed: undo,
-              ),
+              IconButton(icon: const Icon(Icons.undo), onPressed: undo),
             ],
           ),
           SliverPadding(
@@ -1211,9 +1235,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text("Settings"),
-      ),
+      appBar: AppBar(title: const Text("Settings")),
       body: Padding(
         padding: const EdgeInsets.all(16),
         child: Column(
@@ -1301,4 +1323,3 @@ class _SettingsScreenState extends State<SettingsScreen> {
     );
   }
 }
-
