@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_tts/flutter_tts.dart';
 import 'package:audioplayers/audioplayers.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'match_history.dart';
 
 void main() {
@@ -24,12 +25,66 @@ class PadelApp extends StatefulWidget {
 class _PadelAppState extends State<PadelApp> {
   bool darkMode = true;
   double speechRate = 0.6;
+  bool soundEffects = true;
+  bool hapticFeedback = true;
+  bool voiceAnnouncements = true;
+  int matchFormat = 3; // Best of 3 sets
+  int gamesPerSet = 6;
+  int tieBreakAt = 6;
 
-  void updateSettings(bool isDark, double rate) {
+  @override
+  void initState() {
+    super.initState();
+    _loadSettings();
+  }
+
+  Future<void> _loadSettings() async {
+    final prefs = await SharedPreferences.getInstance();
+    setState(() {
+      darkMode = prefs.getBool('darkMode') ?? true;
+      speechRate = prefs.getDouble('speechRate') ?? 0.6;
+      soundEffects = prefs.getBool('soundEffects') ?? true;
+      hapticFeedback = prefs.getBool('hapticFeedback') ?? true;
+      voiceAnnouncements = prefs.getBool('voiceAnnouncements') ?? true;
+      matchFormat = prefs.getInt('matchFormat') ?? 3;
+      gamesPerSet = prefs.getInt('gamesPerSet') ?? 6;
+      tieBreakAt = prefs.getInt('tieBreakAt') ?? 6;
+    });
+  }
+
+  Future<void> _saveSettings() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool('darkMode', darkMode);
+    await prefs.setDouble('speechRate', speechRate);
+    await prefs.setBool('soundEffects', soundEffects);
+    await prefs.setBool('hapticFeedback', hapticFeedback);
+    await prefs.setBool('voiceAnnouncements', voiceAnnouncements);
+    await prefs.setInt('matchFormat', matchFormat);
+    await prefs.setInt('gamesPerSet', gamesPerSet);
+    await prefs.setInt('tieBreakAt', tieBreakAt);
+  }
+
+  void updateSettings(
+    bool isDark,
+    double rate,
+    bool sounds,
+    bool haptics,
+    bool voice,
+    int format,
+    int games,
+    int tie,
+  ) {
     setState(() {
       darkMode = isDark;
       speechRate = rate;
+      soundEffects = sounds;
+      hapticFeedback = haptics;
+      voiceAnnouncements = voice;
+      matchFormat = format;
+      gamesPerSet = games;
+      tieBreakAt = tie;
     });
+    _saveSettings();
   }
 
   @override
@@ -57,20 +112,55 @@ class _PadelAppState extends State<PadelApp> {
             ),
       home: Builder(
         builder: (context) => PlayerSetupScreen(
-          onToggleTheme: () => updateSettings(!darkMode, speechRate),
+          onToggleTheme: () {
+            updateSettings(
+              !darkMode,
+              speechRate,
+              soundEffects,
+              hapticFeedback,
+              voiceAnnouncements,
+              matchFormat,
+              gamesPerSet,
+              tieBreakAt,
+            );
+            _saveSettings();
+          },
           speechRate: speechRate,
           darkMode: darkMode,
+          soundEffects: soundEffects,
+          hapticFeedback: hapticFeedback,
+          voiceAnnouncements: voiceAnnouncements,
+          matchFormat: matchFormat,
+          gamesPerSet: gamesPerSet,
+          tieBreakAt: tieBreakAt,
           onOpenSettings: () async {
             final result = await Navigator.push(
               context,
               MaterialPageRoute(
-                builder: (_) =>
-                    SettingsScreen(darkMode: darkMode, speechRate: speechRate),
+                builder: (_) => SettingsScreen(
+                  darkMode: darkMode,
+                  speechRate: speechRate,
+                  soundEffects: soundEffects,
+                  hapticFeedback: hapticFeedback,
+                  voiceAnnouncements: voiceAnnouncements,
+                  matchFormat: matchFormat,
+                  gamesPerSet: gamesPerSet,
+                  tieBreakAt: tieBreakAt,
+                ),
               ),
             );
 
             if (result != null) {
-              updateSettings(result['darkMode'], result['speechRate']);
+              updateSettings(
+                result['darkMode'],
+                result['speechRate'],
+                result['soundEffects'],
+                result['hapticFeedback'],
+                result['voiceAnnouncements'],
+                result['matchFormat'],
+                result['gamesPerSet'],
+                result['tieBreakAt'],
+              );
             }
           },
         ),
@@ -85,6 +175,12 @@ class PlayerSetupScreen extends StatefulWidget {
   final double speechRate;
   final bool darkMode;
   final VoidCallback onOpenSettings;
+  final bool soundEffects;
+  final bool hapticFeedback;
+  final bool voiceAnnouncements;
+  final int matchFormat;
+  final int gamesPerSet;
+  final int tieBreakAt;
 
   const PlayerSetupScreen({
     super.key,
@@ -92,6 +188,12 @@ class PlayerSetupScreen extends StatefulWidget {
     required this.speechRate,
     required this.darkMode,
     required this.onOpenSettings,
+    this.soundEffects = true,
+    this.hapticFeedback = true,
+    this.voiceAnnouncements = true,
+    this.matchFormat = 3,
+    this.gamesPerSet = 6,
+    this.tieBreakAt = 6,
   });
 
   @override
@@ -426,6 +528,12 @@ class _PlayerSetupScreenState extends State<PlayerSetupScreen> {
                             startingServerIndex: startingServerIndex,
                             startingTeam: startingTeam,
                             speechRate: widget.speechRate,
+                            soundEffects: widget.soundEffects,
+                            hapticFeedback: widget.hapticFeedback,
+                            voiceAnnouncements: widget.voiceAnnouncements,
+                            matchFormat: widget.matchFormat,
+                            gamesPerSet: widget.gamesPerSet,
+                            tieBreakAt: widget.tieBreakAt,
                           ),
                         ),
                       );
@@ -507,6 +615,12 @@ class MatchScreen extends StatefulWidget {
   final int startingServerIndex;
   final Team startingTeam;
   final double speechRate;
+  final bool soundEffects;
+  final bool hapticFeedback;
+  final bool voiceAnnouncements;
+  final int matchFormat;
+  final int gamesPerSet;
+  final int tieBreakAt;
 
   const MatchScreen({
     super.key,
@@ -514,6 +628,12 @@ class MatchScreen extends StatefulWidget {
     required this.startingServerIndex,
     required this.startingTeam,
     required this.speechRate,
+    this.soundEffects = true,
+    this.hapticFeedback = true,
+    this.voiceAnnouncements = true,
+    this.matchFormat = 3,
+    this.gamesPerSet = 6,
+    this.tieBreakAt = 6,
   });
 
   @override
@@ -534,6 +654,12 @@ class _MatchScreenState extends State<MatchScreen> {
   int currentGameIndex = 0;
 
   bool game2ManualSelectionDone = false;
+  bool get _sounds => widget.soundEffects;
+  bool get _haptics => widget.hapticFeedback;
+  bool get _voice => widget.voiceAnnouncements;
+  int get _format => widget.matchFormat;
+  int get _gamesPerSet => widget.gamesPerSet;
+  int get _tieAt => widget.tieBreakAt;
 
   @override
   void initState() {
@@ -548,7 +674,9 @@ class _MatchScreenState extends State<MatchScreen> {
 
     audioPlayer = AudioPlayer();
 
-    speakScore();
+    if (_voice) {
+      speakScore();
+    }
   }
 
   @override
@@ -745,17 +873,41 @@ class _MatchScreenState extends State<MatchScreen> {
   }
 
   void checkSet() {
-    if (state.gamesA >= 6 && state.gamesA - state.gamesB >= 2) {
+    if (state.gamesA >= _gamesPerSet && state.gamesA - state.gamesB >= 2) {
       state.setsA++;
       state.gamesA = 0;
       state.gamesB = 0;
+      checkMatchWon();
     }
 
-    if (state.gamesB >= 6 && state.gamesB - state.gamesA >= 2) {
+    if (state.gamesB >= _gamesPerSet && state.gamesB - state.gamesA >= 2) {
       state.setsB++;
       state.gamesA = 0;
       state.gamesB = 0;
+      checkMatchWon();
     }
+  }
+
+  void checkMatchWon() {
+    int setsNeeded = (_format + 1) ~/ 2;
+    if (state.setsA >= setsNeeded || state.setsB >= setsNeeded) {
+      endMatchEarly();
+    }
+  }
+
+  void endMatchEarly() {
+    final winner = state.setsA > state.setsB ? 'A' : 'B';
+    final record = MatchRecord(
+      id: DateTime.now().millisecondsSinceEpoch.toString(),
+      dateTime: DateTime.now(),
+      players: widget.players,
+      setsA: state.setsA,
+      setsB: state.setsB,
+      gamesA: state.gamesA,
+      gamesB: state.gamesB,
+      winner: winner,
+    );
+    HistoryService.saveMatch(record);
   }
 
   Future speakGameWinner(String team) async {
@@ -766,8 +918,10 @@ class _MatchScreenState extends State<MatchScreen> {
 
   Future speakScore() async {
     if (state.pointsA == 0 && state.pointsB == 0) {
-      await audioPlayer.play(AssetSource('sounds/referee_whistle.mp3'));
-      await Future.delayed(const Duration(seconds: 2));
+      if (_sounds) {
+        await audioPlayer.play(AssetSource('sounds/referee_whistle.mp3'));
+        await Future.delayed(const Duration(seconds: 2));
+      }
     }
 
     String score = buildScoreText(forSpeech: true);
@@ -820,7 +974,9 @@ class _MatchScreenState extends State<MatchScreen> {
   }
 
   void addPoint(bool isA) {
-    HapticFeedback.lightImpact();
+    if (_haptics) {
+      HapticFeedback.lightImpact();
+    }
 
     setState(() {
       history.add(state.copy());
@@ -836,7 +992,9 @@ class _MatchScreenState extends State<MatchScreen> {
       checkGame();
     });
 
-    speakScore();
+    if (_voice) {
+      speakScore();
+    }
   }
 
   void undo() {
@@ -848,18 +1006,25 @@ class _MatchScreenState extends State<MatchScreen> {
   }
 
   Future<void> endMatch() async {
-    final confirmed = await showDialog<bool>(
+    final result = await showDialog<String>(
       context: context,
       builder: (ctx) => AlertDialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        title: const Text("End Match"),
-        content: const Text(
-          "Are you sure you want to end this match and save the result?",
+        title: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            const Text("End Match"),
+            GestureDetector(
+              onTap: () => Navigator.pop(ctx, null),
+              child: const Icon(Icons.close, size: 20),
+            ),
+          ],
         ),
+        content: const Text("What would you like to do?"),
         actions: [
           TextButton(
-            onPressed: () => Navigator.pop(ctx, false),
-            child: const Text("Cancel"),
+            onPressed: () => Navigator.pop(ctx, 'exit'),
+            child: const Text("Exit without saving"),
           ),
           ElevatedButton(
             style: ElevatedButton.styleFrom(
@@ -869,15 +1034,24 @@ class _MatchScreenState extends State<MatchScreen> {
                 borderRadius: BorderRadius.circular(12),
               ),
             ),
-            onPressed: () => Navigator.pop(ctx, true),
+            onPressed: () => Navigator.pop(ctx, 'save'),
             child: const Text("End & Save"),
           ),
         ],
       ),
     );
 
-    if (confirmed != true) return;
+    if (result == null) return; // User pressed X - continue game
 
+    if (result == 'exit') {
+      // Exit without saving
+      if (mounted) {
+        Navigator.pop(context);
+      }
+      return;
+    }
+
+    // result == 'save' - save and exit
     final winner = state.setsA > state.setsB
         ? 'A'
         : state.setsB > state.setsA
@@ -1140,69 +1314,71 @@ class _MatchScreenState extends State<MatchScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      body: CustomScrollView(
-        slivers: [
-          SliverAppBar(
-            expandedHeight: 100,
-            floating: false,
-            pinned: true,
-            leading: IconButton(
-              icon: const Icon(Icons.arrow_back),
-              onPressed: () => Navigator.pop(context),
-            ),
-            flexibleSpace: FlexibleSpaceBar(
-              title: const Text(
-                "Match in Progress",
-                style: TextStyle(fontWeight: FontWeight.bold),
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (didPop, result) async {
+        if (didPop) return;
+        await endMatch();
+      },
+      child: Scaffold(
+        body: CustomScrollView(
+          slivers: [
+            SliverAppBar(
+              expandedHeight: 100,
+              floating: false,
+              pinned: true,
+              leading: IconButton(
+                icon: const Icon(Icons.arrow_back),
+                onPressed: () => endMatch(),
               ),
-              background: Container(
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    colors: [Colors.green[800]!, Colors.green[600]!],
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
+              flexibleSpace: FlexibleSpaceBar(
+                title: const Text(
+                  "Match in Progress",
+                  style: TextStyle(fontWeight: FontWeight.bold),
+                ),
+                background: Container(
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      colors: [Colors.green[800]!, Colors.green[600]!],
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                    ),
                   ),
                 ),
               ),
+              actions: [
+                IconButton(icon: const Icon(Icons.undo), onPressed: undo),
+              ],
             ),
-            actions: [
-              IconButton(
-                icon: const Icon(Icons.save_alt),
-                tooltip: 'End Match',
-                onPressed: endMatch,
+            SliverPadding(
+              padding: const EdgeInsets.all(16),
+              sliver: SliverList(
+                delegate: SliverChildListDelegate([
+                  _buildScoreCard(),
+                  const SizedBox(height: 24),
+                  Row(
+                    children: [
+                      _buildTeamCard(
+                        player1: widget.players[0],
+                        player2: widget.players[1],
+                        isTeamA: true,
+                        onPressed: () => addPoint(true),
+                      ),
+                      const SizedBox(width: 12),
+                      _buildTeamCard(
+                        player1: widget.players[2],
+                        player2: widget.players[3],
+                        isTeamA: false,
+                        onPressed: () => addPoint(false),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 20),
+                ]),
               ),
-              IconButton(icon: const Icon(Icons.undo), onPressed: undo),
-            ],
-          ),
-          SliverPadding(
-            padding: const EdgeInsets.all(16),
-            sliver: SliverList(
-              delegate: SliverChildListDelegate([
-                _buildScoreCard(),
-                const SizedBox(height: 24),
-                Row(
-                  children: [
-                    _buildTeamCard(
-                      player1: widget.players[0],
-                      player2: widget.players[1],
-                      isTeamA: true,
-                      onPressed: () => addPoint(true),
-                    ),
-                    const SizedBox(width: 12),
-                    _buildTeamCard(
-                      player1: widget.players[2],
-                      player2: widget.players[3],
-                      isTeamA: false,
-                      onPressed: () => addPoint(false),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 20),
-              ]),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
@@ -1212,11 +1388,23 @@ class _MatchScreenState extends State<MatchScreen> {
 class SettingsScreen extends StatefulWidget {
   final bool darkMode;
   final double speechRate;
+  final bool soundEffects;
+  final bool hapticFeedback;
+  final bool voiceAnnouncements;
+  final int matchFormat;
+  final int gamesPerSet;
+  final int tieBreakAt;
 
   const SettingsScreen({
     super.key,
     required this.darkMode,
     required this.speechRate,
+    required this.soundEffects,
+    required this.hapticFeedback,
+    required this.voiceAnnouncements,
+    required this.matchFormat,
+    required this.gamesPerSet,
+    required this.tieBreakAt,
   });
 
   @override
@@ -1226,12 +1414,89 @@ class SettingsScreen extends StatefulWidget {
 class _SettingsScreenState extends State<SettingsScreen> {
   late bool darkMode;
   late double speechRate;
+  late bool soundEffects;
+  late bool hapticFeedback;
+  late bool voiceAnnouncements;
+  late int matchFormat;
+  late int gamesPerSet;
+  late int tieBreakAt;
 
   @override
   void initState() {
     super.initState();
     darkMode = widget.darkMode;
     speechRate = widget.speechRate;
+    soundEffects = widget.soundEffects;
+    hapticFeedback = widget.hapticFeedback;
+    voiceAnnouncements = widget.voiceAnnouncements;
+    matchFormat = widget.matchFormat;
+    gamesPerSet = widget.gamesPerSet;
+    tieBreakAt = widget.tieBreakAt;
+  }
+
+  Widget _buildSwitchTile({
+    required String title,
+    required String subtitle,
+    required IconData icon,
+    required bool value,
+    required ValueChanged<bool> onChanged,
+  }) {
+    return Card(
+      child: SwitchListTile(
+        title: Text(title),
+        subtitle: Text(subtitle),
+        secondary: Icon(icon, color: Colors.green[700]),
+        value: value,
+        onChanged: onChanged,
+      ),
+    );
+  }
+
+  Widget _buildDropdownTile({
+    required String title,
+    required IconData icon,
+    required int value,
+    required List<int> options,
+    required ValueChanged<int?> onChanged,
+    String Function(int)? label,
+  }) {
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Icon(icon, color: Colors.green[700]),
+                const SizedBox(width: 8),
+                Text(
+                  title,
+                  style: const TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
+            DropdownButton<int>(
+              isExpanded: true,
+              value: value,
+              items: options
+                  .map(
+                    (o) => DropdownMenuItem<int>(
+                      value: o,
+                      child: Text(label?.call(o) ?? o.toString()),
+                    ),
+                  )
+                  .toList(),
+              onChanged: onChanged,
+            ),
+          ],
+        ),
+      ),
+    );
   }
 
   @override
@@ -1240,8 +1505,36 @@ class _SettingsScreenState extends State<SettingsScreen> {
       appBar: AppBar(title: const Text("Settings")),
       body: Padding(
         padding: const EdgeInsets.all(16),
-        child: Column(
+        child: ListView(
           children: [
+            // Sound Effects
+            _buildSwitchTile(
+              title: 'Sound Effects',
+              subtitle: 'Referee whistle at starting point',
+              icon: Icons.volume_up,
+              value: soundEffects,
+              onChanged: (v) => setState(() => soundEffects = v),
+            ),
+            const SizedBox(height: 8),
+            // // Haptic Feedback
+            // _buildSwitchTile(
+            //   title: 'Haptic Feedback',
+            //   subtitle: 'Vibration on button press',
+            //   icon: Icons.vibration,
+            //   value: hapticFeedback,
+            //   onChanged: (v) => setState(() => hapticFeedback = v),
+            // ),
+            // const SizedBox(height: 8),
+            // Voice Announcements
+            _buildSwitchTile(
+              title: 'Voice Announcements',
+              subtitle: 'Score calls',
+              icon: Icons.record_voice_over,
+              value: voiceAnnouncements,
+              onChanged: (v) => setState(() => voiceAnnouncements = v),
+            ),
+            const SizedBox(height: 16),
+            // Speech Speed
             Card(
               child: Padding(
                 padding: const EdgeInsets.all(20),
@@ -1284,7 +1577,37 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 ),
               ),
             ),
-            const Spacer(),
+            const SizedBox(height: 16),
+            // Match Format
+            _buildDropdownTile(
+              title: 'Match Format',
+              icon: Icons.emoji_events,
+              value: matchFormat,
+              options: const [1, 3, 5],
+              onChanged: (v) => setState(() => matchFormat = v ?? matchFormat),
+              label: (o) => 'Best of $o sets',
+            ),
+            const SizedBox(height: 8),
+            // Games per Set
+            _buildDropdownTile(
+              title: 'Games per Set',
+              icon: Icons.sports_tennis,
+              value: gamesPerSet,
+              options: const [6, 3],
+              onChanged: (v) => setState(() => gamesPerSet = v ?? gamesPerSet),
+              // label: (o) => '$o games',
+            ),
+            const SizedBox(height: 8),
+            // Tie-break at
+            // _buildDropdownTile(
+            //   title: 'Tie-break at',
+            //   icon: Icons.balance,
+            //   value: tieBreakAt,
+            //   options: const [6, 7],
+            //   onChanged: (v) => setState(() => tieBreakAt = v ?? tieBreakAt),
+            //   label: (o) => '$o-$o',
+            // ),
+            // const SizedBox(height: 24),
             SizedBox(
               width: double.infinity,
               height: 56,
@@ -1301,6 +1624,12 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   Navigator.pop(context, {
                     'darkMode': darkMode,
                     'speechRate': speechRate,
+                    'soundEffects': soundEffects,
+                    'hapticFeedback': hapticFeedback,
+                    'voiceAnnouncements': voiceAnnouncements,
+                    'matchFormat': matchFormat,
+                    'gamesPerSet': gamesPerSet,
+                    'tieBreakAt': tieBreakAt,
                   });
                 },
                 child: const Row(

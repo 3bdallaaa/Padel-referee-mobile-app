@@ -25,26 +25,26 @@ class MatchRecord {
   });
 
   Map<String, dynamic> toJson() => {
-        'id': id,
-        'dateTime': dateTime.toIso8601String(),
-        'players': players,
-        'setsA': setsA,
-        'setsB': setsB,
-        'gamesA': gamesA,
-        'gamesB': gamesB,
-        'winner': winner,
-      };
+    'id': id,
+    'dateTime': dateTime.toIso8601String(),
+    'players': players,
+    'setsA': setsA,
+    'setsB': setsB,
+    'gamesA': gamesA,
+    'gamesB': gamesB,
+    'winner': winner,
+  };
 
   factory MatchRecord.fromJson(Map<String, dynamic> json) => MatchRecord(
-        id: json['id'] as String,
-        dateTime: DateTime.parse(json['dateTime'] as String),
-        players: List<String>.from(json['players'] as List),
-        setsA: json['setsA'] as int,
-        setsB: json['setsB'] as int,
-        gamesA: json['gamesA'] as int,
-        gamesB: json['gamesB'] as int,
-        winner: json['winner'] as String,
-      );
+    id: json['id'] as String,
+    dateTime: DateTime.parse(json['dateTime'] as String),
+    players: List<String>.from(json['players'] as List),
+    setsA: json['setsA'] as int,
+    setsB: json['setsB'] as int,
+    gamesA: json['gamesA'] as int,
+    gamesB: json['gamesB'] as int,
+    winner: json['winner'] as String,
+  );
 }
 
 // ---------------- HISTORY SERVICE ----------------
@@ -69,6 +69,18 @@ class HistoryService {
   static Future<void> clearHistory() async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.remove(_key);
+  }
+
+  static Future<void> deleteMatch(String id) async {
+    final prefs = await SharedPreferences.getInstance();
+    final List<String> raw = prefs.getStringList(_key) ?? [];
+    final updated = raw.where((e) {
+      final record = MatchRecord.fromJson(
+        jsonDecode(e) as Map<String, dynamic>,
+      );
+      return record.id != id;
+    }).toList();
+    await prefs.setStringList(_key, updated);
   }
 }
 
@@ -98,16 +110,45 @@ class _HistoryScreenState extends State<HistoryScreen> {
     });
   }
 
+  Future<void> _confirmDelete(String id) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: const Text('Delete Match'),
+        content: const Text('Are you sure you want to delete this match?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.red,
+              foregroundColor: Colors.white,
+            ),
+            onPressed: () => Navigator.pop(ctx, true),
+            child: const Text('Delete'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed == true) {
+      await HistoryService.deleteMatch(id);
+      _load();
+    }
+  }
+
   Future<void> _confirmClear() async {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(20),
-        ),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
         title: const Text('Clear History'),
         content: const Text(
-            'Are you sure you want to delete all match history? This cannot be undone.'),
+          'Are you sure you want to delete all match history? This cannot be undone.',
+        ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx, false),
@@ -163,24 +204,14 @@ class _HistoryScreenState extends State<HistoryScreen> {
               background: Container(
                 decoration: BoxDecoration(
                   gradient: LinearGradient(
-                    colors: [
-                      Colors.green[800]!,
-                      Colors.green[600]!,
-                    ],
+                    colors: [Colors.green[800]!, Colors.green[600]!],
                     begin: Alignment.topLeft,
                     end: Alignment.bottomRight,
                   ),
                 ),
               ),
             ),
-            actions: [
-              if (_matches.isNotEmpty)
-                IconButton(
-                  icon: const Icon(Icons.delete_sweep, color: Colors.white),
-                  tooltip: 'Clear All',
-                  onPressed: _confirmClear,
-                ),
-            ],
+            actions: const [],
           ),
           if (_loading)
             const SliverFillRemaining(
@@ -192,11 +223,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    Icon(
-                      Icons.history,
-                      size: 64,
-                      color: Colors.grey[400],
-                    ),
+                    Icon(Icons.history, size: 64, color: Colors.grey[400]),
                     const SizedBox(height: 16),
                     Text(
                       'No matches yet',
@@ -209,10 +236,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
                     const SizedBox(height: 8),
                     Text(
                       'Complete a match to see it here',
-                      style: TextStyle(
-                        fontSize: 14,
-                        color: Colors.grey[500],
-                      ),
+                      style: TextStyle(fontSize: 14, color: Colors.grey[500]),
                     ),
                   ],
                 ),
@@ -222,13 +246,10 @@ class _HistoryScreenState extends State<HistoryScreen> {
             SliverPadding(
               padding: const EdgeInsets.all(16),
               sliver: SliverList(
-                delegate: SliverChildBuilderDelegate(
-                  (context, index) {
-                    final match = _matches[index];
-                    return _buildMatchCard(match);
-                  },
-                  childCount: _matches.length,
-                ),
+                delegate: SliverChildBuilderDelegate((context, index) {
+                  final match = _matches[index];
+                  return _buildMatchCard(match);
+                }, childCount: _matches.length),
               ),
             ),
         ],
@@ -244,9 +265,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
     return Card(
       elevation: 6,
       margin: const EdgeInsets.only(bottom: 16),
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(20),
-      ),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
       child: Padding(
         padding: const EdgeInsets.all(16),
         child: Column(
@@ -273,25 +292,38 @@ class _HistoryScreenState extends State<HistoryScreen> {
                     ),
                   ],
                 ),
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 10,
-                    vertical: 4,
-                  ),
-                  decoration: BoxDecoration(
-                    color: isTeamAWinner
-                        ? Colors.blue.withValues(alpha: 0.15)
-                        : Colors.orange.withValues(alpha: 0.15),
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: Text(
-                    isTeamAWinner ? 'Team A Wins' : 'Team B Wins',
-                    style: TextStyle(
-                      fontSize: 12,
-                      fontWeight: FontWeight.bold,
-                      color: isTeamAWinner ? Colors.blue : Colors.orange,
+                Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 10,
+                        vertical: 4,
+                      ),
+                      decoration: BoxDecoration(
+                        color: isTeamAWinner
+                            ? Colors.blue.withValues(alpha: 0.15)
+                            : Colors.orange.withValues(alpha: 0.15),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Text(
+                        isTeamAWinner ? 'Team A Wins' : 'Team B Wins',
+                        style: TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.bold,
+                          color: isTeamAWinner ? Colors.blue : Colors.orange,
+                        ),
+                      ),
                     ),
-                  ),
+                    const SizedBox(width: 8),
+                    GestureDetector(
+                      onTap: () => _confirmDelete(match.id),
+                      child: Icon(
+                        Icons.delete_outline,
+                        size: 20,
+                        color: Colors.grey[400],
+                      ),
+                    ),
+                  ],
                 ),
               ],
             ),
@@ -407,4 +439,3 @@ class _HistoryScreenState extends State<HistoryScreen> {
     );
   }
 }
-
