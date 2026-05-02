@@ -208,6 +208,7 @@ class _PlayerSetupScreenState extends State<PlayerSetupScreen> {
 
   Team startingTeam = Team.A;
   bool firstPlayerServer = true;
+  bool singlePlayerMode = false;
 
   int get startingServerIndex {
     return startingTeam == Team.A
@@ -367,10 +368,16 @@ class _PlayerSetupScreenState extends State<PlayerSetupScreen> {
                 ),
                 const SizedBox(width: 12),
                 Expanded(
-                  child: _buildServerChoice(
-                    label: "Player 2",
-                    isSelected: !firstPlayerServer,
-                    onTap: () => setState(() => firstPlayerServer = false),
+                  child: Opacity(
+                    opacity: singlePlayerMode ? 0.3 : 1.0,
+                    child: IgnorePointer(
+                      ignoring: singlePlayerMode,
+                      child: _buildServerChoice(
+                        label: "Player 2",
+                        isSelected: !firstPlayerServer,
+                        onTap: () => setState(() => firstPlayerServer = false),
+                      ),
+                    ),
                   ),
                 ),
               ],
@@ -416,6 +423,105 @@ class _PlayerSetupScreenState extends State<PlayerSetupScreen> {
               style: TextStyle(
                 color: isSelected ? Colors.green : Colors.grey,
                 fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildGameTypeSelector() {
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Icon(Icons.sports_tennis, color: Colors.purple[700]),
+                const SizedBox(width: 8),
+                const Text(
+                  "Game Type",
+                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
+            Row(
+              children: [
+                Expanded(
+                  child: _buildGameTypeChoice(
+                    label: "Single Player",
+                    subLabel: "1 vs 1",
+                    isSelected: singlePlayerMode,
+                    onTap: () => setState(() => singlePlayerMode = true),
+                    isSinglePlayer: true,
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: _buildGameTypeChoice(
+                    label: "Doubles",
+                    subLabel: "2 vs 2",
+                    isSelected: !singlePlayerMode,
+                    onTap: () => setState(() => singlePlayerMode = false),
+                    isSinglePlayer: false,
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildGameTypeChoice({
+    required String label,
+    required String subLabel,
+    required bool isSelected,
+    required VoidCallback onTap,
+    required bool isSinglePlayer,
+  }) {
+    return GestureDetector(
+      onTap: onTap,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
+        padding: const EdgeInsets.symmetric(vertical: 16),
+        decoration: BoxDecoration(
+          color: isSelected
+              ? Colors.purple.withValues(alpha: 0.15)
+              : Colors.transparent,
+          border: Border.all(
+            color: isSelected
+                ? Colors.purple
+                : Colors.grey.withValues(alpha: 0.3),
+            width: isSelected ? 2 : 1,
+          ),
+          borderRadius: BorderRadius.circular(12),
+        ),
+        child: Column(
+          children: [
+            Icon(
+              isSinglePlayer ? Icons.person : Icons.group,
+              color: isSelected ? Colors.purple : Colors.grey,
+              size: 32,
+            ),
+            const SizedBox(height: 8),
+            Text(
+              label,
+              style: TextStyle(
+                color: isSelected ? Colors.purple : Colors.grey,
+                fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+              ),
+            ),
+            Text(
+              subLabel,
+              style: TextStyle(
+                fontSize: 12,
+                color: isSelected ? Colors.purple[300] : Colors.grey[400],
               ),
             ),
           ],
@@ -476,16 +582,26 @@ class _PlayerSetupScreenState extends State<PlayerSetupScreen> {
             padding: const EdgeInsets.all(16),
             sliver: SliverList(
               delegate: SliverChildListDelegate([
+                // Game Type Selector
+                _buildGameTypeSelector(),
+                const SizedBox(height: 20),
+
                 // Team A Players
                 _buildSectionHeader("Team A", Colors.blue),
                 const SizedBox(height: 8),
                 _buildPlayerCard(c1, "Player 1", Colors.blue, Icons.person),
                 const SizedBox(height: 8),
-                _buildPlayerCard(
-                  c2,
-                  "Player 2",
-                  Colors.blue,
-                  Icons.person_outline,
+                Opacity(
+                  opacity: singlePlayerMode ? 0.3 : 1.0,
+                  child: IgnorePointer(
+                    ignoring: singlePlayerMode,
+                    child: _buildPlayerCard(
+                      c2,
+                      "Player 2",
+                      Colors.blue,
+                      Icons.person_outline,
+                    ),
+                  ),
                 ),
                 const SizedBox(height: 20),
 
@@ -494,11 +610,17 @@ class _PlayerSetupScreenState extends State<PlayerSetupScreen> {
                 const SizedBox(height: 8),
                 _buildPlayerCard(c3, "Player 3", Colors.orange, Icons.person),
                 const SizedBox(height: 8),
-                _buildPlayerCard(
-                  c4,
-                  "Player 4",
-                  Colors.orange,
-                  Icons.person_outline,
+                Opacity(
+                  opacity: singlePlayerMode ? 0.3 : 1.0,
+                  child: IgnorePointer(
+                    ignoring: singlePlayerMode,
+                    child: _buildPlayerCard(
+                      c4,
+                      "Player 4",
+                      Colors.orange,
+                      Icons.person_outline,
+                    ),
+                  ),
                 ),
                 const SizedBox(height: 20),
 
@@ -534,6 +656,7 @@ class _PlayerSetupScreenState extends State<PlayerSetupScreen> {
                             matchFormat: widget.matchFormat,
                             gamesPerSet: widget.gamesPerSet,
                             tieBreakAt: widget.tieBreakAt,
+                            singlePlayerMode: singlePlayerMode,
                           ),
                         ),
                       );
@@ -621,6 +744,7 @@ class MatchScreen extends StatefulWidget {
   final int matchFormat;
   final int gamesPerSet;
   final int tieBreakAt;
+  final bool singlePlayerMode;
 
   const MatchScreen({
     super.key,
@@ -634,6 +758,7 @@ class MatchScreen extends StatefulWidget {
     this.matchFormat = 3,
     this.gamesPerSet = 6,
     this.tieBreakAt = 6,
+    this.singlePlayerMode = false,
   });
 
   @override
@@ -836,6 +961,12 @@ class _MatchScreenState extends State<MatchScreen> {
   }
 
   void nextServer() {
+    // In single player mode: alternate between player 0 and player 2 only
+    if (widget.singlePlayerMode) {
+      serverIndex = (serverIndex == 0) ? 2 : 0;
+      return;
+    }
+
     currentGameIndex++;
 
     if (currentGameIndex == 1 && serveOrder.length == 1) {
