@@ -211,12 +211,23 @@ class _PlayerSetupScreenState extends State<PlayerSetupScreen> {
   bool singlePlayerMode = false;
 
   int get startingServerIndex {
+    if (singlePlayerMode) {
+      return startingTeam == Team.A
+          ? 0
+          : 2; // 0 = player 1 (c1), 2 = player 3 (c3)
+    }
     return startingTeam == Team.A
         ? (firstPlayerServer ? 0 : 1)
         : (firstPlayerServer ? 2 : 3);
   }
 
-  List<String> get players => [c1.text, c2.text, c3.text, c4.text];
+  List<String> get players {
+    if (singlePlayerMode) {
+      // Return 4 elements with players 2 and 4 as empty strings
+      return [c1.text, "", c3.text, ""];
+    }
+    return [c1.text, c2.text, c3.text, c4.text];
+  }
 
   Widget _buildPlayerCard(
     TextEditingController controller,
@@ -340,6 +351,11 @@ class _PlayerSetupScreenState extends State<PlayerSetupScreen> {
   }
 
   Widget _buildServerSelector() {
+    // Hide server selector completely in single player mode
+    if (singlePlayerMode) {
+      return const SizedBox.shrink();
+    }
+
     return Card(
       child: Padding(
         padding: const EdgeInsets.all(16),
@@ -368,16 +384,10 @@ class _PlayerSetupScreenState extends State<PlayerSetupScreen> {
                 ),
                 const SizedBox(width: 12),
                 Expanded(
-                  child: Opacity(
-                    opacity: singlePlayerMode ? 0.3 : 1.0,
-                    child: IgnorePointer(
-                      ignoring: singlePlayerMode,
-                      child: _buildServerChoice(
-                        label: "Player 2",
-                        isSelected: !firstPlayerServer,
-                        onTap: () => setState(() => firstPlayerServer = false),
-                      ),
-                    ),
+                  child: _buildServerChoice(
+                    label: "Player 2",
+                    isSelected: !firstPlayerServer,
+                    onTap: () => setState(() => firstPlayerServer = false),
                   ),
                 ),
               ],
@@ -453,7 +463,7 @@ class _PlayerSetupScreenState extends State<PlayerSetupScreen> {
               children: [
                 Expanded(
                   child: _buildGameTypeChoice(
-                    label: "Single Player",
+                    label: "Singles",
                     subLabel: "1 vs 1",
                     isSelected: singlePlayerMode,
                     onTap: () => setState(() => singlePlayerMode = true),
@@ -590,38 +600,30 @@ class _PlayerSetupScreenState extends State<PlayerSetupScreen> {
                 _buildSectionHeader("Team A", Colors.blue),
                 const SizedBox(height: 8),
                 _buildPlayerCard(c1, "Player 1", Colors.blue, Icons.person),
-                const SizedBox(height: 8),
-                Opacity(
-                  opacity: singlePlayerMode ? 0.3 : 1.0,
-                  child: IgnorePointer(
-                    ignoring: singlePlayerMode,
-                    child: _buildPlayerCard(
-                      c2,
-                      "Player 2",
-                      Colors.blue,
-                      Icons.person_outline,
-                    ),
+                if (!singlePlayerMode) ...[
+                  const SizedBox(height: 8),
+                  _buildPlayerCard(
+                    c2,
+                    "Player 2",
+                    Colors.blue,
+                    Icons.person_outline,
                   ),
-                ),
+                ],
                 const SizedBox(height: 20),
 
                 // Team B Players
                 _buildSectionHeader("Team B", Colors.orange),
                 const SizedBox(height: 8),
-                _buildPlayerCard(c3, "Player 3", Colors.orange, Icons.person),
-                const SizedBox(height: 8),
-                Opacity(
-                  opacity: singlePlayerMode ? 0.3 : 1.0,
-                  child: IgnorePointer(
-                    ignoring: singlePlayerMode,
-                    child: _buildPlayerCard(
-                      c4,
-                      "Player 4",
-                      Colors.orange,
-                      Icons.person_outline,
-                    ),
+                _buildPlayerCard(c3, "Player 1", Colors.orange, Icons.person),
+                if (!singlePlayerMode) ...[
+                  const SizedBox(height: 8),
+                  _buildPlayerCard(
+                    c4,
+                    "Player 2",
+                    Colors.orange,
+                    Icons.person_outline,
                   ),
-                ),
+                ],
                 const SizedBox(height: 20),
 
                 _buildTeamSelector(),
@@ -1042,8 +1044,16 @@ class _MatchScreenState extends State<MatchScreen> {
   }
 
   Future speakGameWinner(String team) async {
-    String a = "${widget.players[0]} and ${widget.players[1]}";
-    String b = "${widget.players[2]} and ${widget.players[3]}";
+    // Handle single player mode - use just player name without "and"
+    String a;
+    String b;
+    if (widget.singlePlayerMode) {
+      a = widget.players[0]; // e.g., "A1"
+      b = widget.players[2]; // e.g., "B1"
+    } else {
+      a = "${widget.players[0]} and ${widget.players[1]}";
+      b = "${widget.players[2]} and ${widget.players[3]}";
+    }
     await tts.speak(team == "A" ? "$a won" : "$b won");
   }
 
@@ -1067,8 +1077,16 @@ class _MatchScreenState extends State<MatchScreen> {
   }
 
   String buildScoreText({bool forSpeech = false}) {
-    String teamA = "${widget.players[0]} and ${widget.players[1]}";
-    String teamB = "${widget.players[2]} and ${widget.players[3]}";
+    // Handle single player mode - use just player name without "and"
+    String teamA;
+    String teamB;
+    if (widget.singlePlayerMode) {
+      teamA = widget.players[0]; // e.g., "A1"
+      teamB = widget.players[2]; // e.g., "B1"
+    } else {
+      teamA = "${widget.players[0]} and ${widget.players[1]}";
+      teamB = "${widget.players[2]} and ${widget.players[3]}";
+    }
 
     if (state.pointsA >= 3 && state.pointsB >= 3) {
       if (state.pointsA == state.pointsB) {
