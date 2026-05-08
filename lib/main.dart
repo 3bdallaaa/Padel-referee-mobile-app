@@ -5,6 +5,8 @@ import 'package:audioplayers/audioplayers.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'match_history.dart';
 
+const Color _primaryBlue = Color.fromARGB(255, 61, 180, 235);
+
 void main() {
   runApp(const PadelApp());
 }
@@ -28,7 +30,7 @@ class _PadelAppState extends State<PadelApp> {
   bool soundEffects = true;
   bool hapticFeedback = true;
   bool voiceAnnouncements = true;
-  int matchFormat = 3; // Best of 3 sets
+  int matchFormat = 1; // Best of 3 sets
   int gamesPerSet = 6;
   int tieBreakAt = 6;
 
@@ -46,7 +48,7 @@ class _PadelAppState extends State<PadelApp> {
       soundEffects = prefs.getBool('soundEffects') ?? true;
       hapticFeedback = prefs.getBool('hapticFeedback') ?? true;
       voiceAnnouncements = prefs.getBool('voiceAnnouncements') ?? true;
-      matchFormat = prefs.getInt('matchFormat') ?? 3;
+      matchFormat = prefs.getInt('matchFormat') ?? 1;
       gamesPerSet = prefs.getInt('gamesPerSet') ?? 6;
       tieBreakAt = prefs.getInt('tieBreakAt') ?? 6;
     });
@@ -102,7 +104,8 @@ class _PadelAppState extends State<PadelApp> {
             )
           : ThemeData(
               useMaterial3: true,
-              colorScheme: ColorScheme.fromSeed(seedColor: Colors.green),
+              colorScheme: ColorScheme.fromSeed(seedColor: _primaryBlue),
+
               cardTheme: CardThemeData(
                 elevation: 8,
                 shape: RoundedRectangleBorder(
@@ -191,7 +194,7 @@ class PlayerSetupScreen extends StatefulWidget {
     this.soundEffects = true,
     this.hapticFeedback = true,
     this.voiceAnnouncements = true,
-    this.matchFormat = 3,
+    this.matchFormat = 1,
     this.gamesPerSet = 6,
     this.tieBreakAt = 6,
   });
@@ -364,7 +367,7 @@ class _PlayerSetupScreenState extends State<PlayerSetupScreen> {
           children: [
             Row(
               children: [
-                Icon(Icons.sports_tennis, color: Colors.green[700]),
+                Icon(Icons.sports_tennis, color: _primaryBlue),
                 const SizedBox(width: 8),
                 const Text(
                   "First Server",
@@ -410,11 +413,11 @@ class _PlayerSetupScreenState extends State<PlayerSetupScreen> {
         padding: const EdgeInsets.symmetric(vertical: 16),
         decoration: BoxDecoration(
           color: isSelected
-              ? Colors.green.withValues(alpha: 0.15)
+              ? _primaryBlue.withValues(alpha: 0.15)
               : Colors.transparent,
           border: Border.all(
             color: isSelected
-                ? Colors.green
+                ? _primaryBlue
                 : Colors.grey.withValues(alpha: 0.3),
             width: isSelected ? 2 : 1,
           ),
@@ -424,14 +427,14 @@ class _PlayerSetupScreenState extends State<PlayerSetupScreen> {
           children: [
             Icon(
               Icons.person,
-              color: isSelected ? Colors.green : Colors.grey,
+              color: isSelected ? _primaryBlue : Colors.grey,
               size: 32,
             ),
             const SizedBox(height: 8),
             Text(
               label,
               style: TextStyle(
-                color: isSelected ? Colors.green : Colors.grey,
+                color: isSelected ? _primaryBlue : Colors.grey,
                 fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
               ),
             ),
@@ -557,8 +560,9 @@ class _PlayerSetupScreenState extends State<PlayerSetupScreen> {
               background: Container(
                 decoration: BoxDecoration(
                   gradient: LinearGradient(
-                    colors: [Colors.green[800]!, Colors.green[600]!],
+                    colors: [_primaryBlue, _primaryBlue],
                     begin: Alignment.topLeft,
+
                     end: Alignment.bottomRight,
                   ),
                 ),
@@ -636,7 +640,7 @@ class _PlayerSetupScreenState extends State<PlayerSetupScreen> {
                   height: 56,
                   child: ElevatedButton(
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.green[700],
+                      backgroundColor: _primaryBlue,
                       foregroundColor: Colors.white,
                       elevation: 4,
                       shape: RoundedRectangleBorder(
@@ -757,7 +761,7 @@ class MatchScreen extends StatefulWidget {
     this.soundEffects = true,
     this.hapticFeedback = true,
     this.voiceAnnouncements = true,
-    this.matchFormat = 3,
+    this.matchFormat = 1,
     this.gamesPerSet = 6,
     this.tieBreakAt = 6,
     this.singlePlayerMode = false,
@@ -786,7 +790,6 @@ class _MatchScreenState extends State<MatchScreen> {
   bool get _voice => widget.voiceAnnouncements;
   int get _format => widget.matchFormat;
   int get _gamesPerSet => widget.gamesPerSet;
-  int get _tieAt => widget.tieBreakAt;
 
   @override
   void initState() {
@@ -1005,20 +1008,133 @@ class _MatchScreenState extends State<MatchScreen> {
     }
   }
 
-  void checkSet() {
+  Future<void> checkSet() async {
+    bool aWonSet = false;
+
+    bool bWonSet = false;
+
+    // A wins the set
     if (state.gamesA >= _gamesPerSet && state.gamesA - state.gamesB >= 2) {
-      state.setsA++;
-      state.gamesA = 0;
-      state.gamesB = 0;
-      checkMatchWon();
+      aWonSet = true;
     }
 
+    // B wins the set
     if (state.gamesB >= _gamesPerSet && state.gamesB - state.gamesA >= 2) {
-      state.setsB++;
-      state.gamesA = 0;
-      state.gamesB = 0;
-      checkMatchWon();
+      bWonSet = true;
     }
+
+    if (!aWonSet && !bWonSet) return;
+
+    // Winner of the just-finished set
+    if (aWonSet) {
+      state.setsA++;
+    } else {
+      state.setsB++;
+    }
+
+    // Save snapshot after every set.
+    endMatchEarly();
+
+    // Show winner popup for this finished set, then exit the game.
+    // (This matches the requirement: popup after the single set before leaving.)
+    if (mounted) {
+      final setWinnerTeam = aWonSet ? 'A' : 'B';
+      await showDialog<void>(
+        context: context,
+        barrierDismissible: false,
+        builder: (ctx) => Dialog(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(24),
+          ),
+          backgroundColor: Colors.transparent,
+          child: Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                colors: [
+                  _primaryBlue.withValues(alpha: 0.92),
+                  _primaryBlue.withValues(alpha: 0.92),
+                ],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+              ),
+              borderRadius: BorderRadius.circular(24),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.25),
+                  blurRadius: 20,
+                  offset: const Offset(0, 10),
+                ),
+              ],
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const SizedBox(height: 4),
+                const Icon(Icons.emoji_events, size: 44, color: Colors.white),
+                const SizedBox(height: 10),
+                const Text(
+                  'Winning Team',
+                  style: TextStyle(
+                    fontSize: 22,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.white,
+                  ),
+                ),
+                const SizedBox(height: 12),
+                Text(
+                  widget.singlePlayerMode
+                      ? ' ${setWinnerTeam == 'A' ? widget.players[0] : widget.players[2]}'
+                      : ' ${setWinnerTeam == 'A' ? widget.players[0] : widget.players[2]} & ${setWinnerTeam == 'A' ? widget.players[1] : widget.players[3]}',
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.w600,
+                    color: Colors.white,
+                  ),
+                ),
+                const SizedBox(height: 18),
+                SizedBox(
+                  width: double.infinity,
+                  height: 48,
+                  child: ElevatedButton(
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.white,
+                      foregroundColor: _primaryBlue,
+
+                      elevation: 6,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(16),
+                      ),
+                    ),
+                    onPressed: () => Navigator.pop(ctx),
+                    child: const Text(
+                      'OK',
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      );
+      // After closing the winning-team popup, do NOT pop the whole MatchScreen.
+      // This prevents the app from ending up on a blank/white route.
+    }
+
+    // Prepare next set.
+    state.gamesA = 0;
+    state.gamesB = 0;
+    // Reset game points too.
+    state.pointsA = 0;
+    state.pointsB = 0;
+
+    // Exit the match screen after any set, so teams can join/teams can change.
+    if (mounted) Navigator.pop(context);
   }
 
   void checkMatchWon() {
@@ -1292,7 +1408,8 @@ class _MatchScreenState extends State<MatchScreen> {
                   vertical: 8,
                 ),
                 decoration: BoxDecoration(
-                  color: Colors.green.withValues(alpha: 0.2),
+                  color: _primaryBlue.withValues(alpha: 0.2),
+
                   borderRadius: BorderRadius.circular(20),
                 ),
                 child: Row(
@@ -1300,14 +1417,14 @@ class _MatchScreenState extends State<MatchScreen> {
                   children: [
                     const Icon(
                       Icons.sports_tennis,
-                      color: Colors.green,
+                      color: _primaryBlue,
                       size: 18,
                     ),
                     const SizedBox(width: 8),
                     Text(
                       "Server: $serverName",
                       style: const TextStyle(
-                        color: Colors.green,
+                        color: _primaryBlue,
                         fontWeight: FontWeight.w600,
                       ),
                     ),
@@ -1488,7 +1605,7 @@ class _MatchScreenState extends State<MatchScreen> {
                 background: Container(
                   decoration: BoxDecoration(
                     gradient: LinearGradient(
-                      colors: [Colors.green[800]!, Colors.green[600]!],
+                      colors: [_primaryBlue, _primaryBlue],
                       begin: Alignment.topLeft,
                       end: Alignment.bottomRight,
                     ),
@@ -1594,7 +1711,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
       child: SwitchListTile(
         title: Text(title),
         subtitle: Text(subtitle),
-        secondary: Icon(icon, color: Colors.green[700]),
+        secondary: Icon(icon, color: _primaryBlue),
+
         value: value,
         onChanged: onChanged,
       ),
@@ -1617,7 +1735,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
           children: [
             Row(
               children: [
-                Icon(icon, color: Colors.green[700]),
+                Icon(icon, color: _primaryBlue),
+
                 const SizedBox(width: 8),
                 Text(
                   title,
@@ -1692,7 +1811,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   children: [
                     Row(
                       children: [
-                        Icon(Icons.speed, color: Colors.green[700]),
+                        Icon(Icons.speed, color: _primaryBlue),
+
                         const SizedBox(width: 8),
                         const Text(
                           "Speech Speed",
@@ -1718,7 +1838,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         style: TextStyle(
                           fontSize: 16,
                           fontWeight: FontWeight.bold,
-                          color: Colors.green[700],
+                          color: _primaryBlue,
                         ),
                       ),
                     ),
@@ -1742,7 +1862,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
               title: 'Games per Set',
               icon: Icons.sports_tennis,
               value: gamesPerSet,
-              options: const [6, 3],
+              options: const [3, 6],
               onChanged: (v) => setState(() => gamesPerSet = v ?? gamesPerSet),
               // label: (o) => '$o games',
             ),
@@ -1762,7 +1882,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
               height: 56,
               child: ElevatedButton(
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.green[700],
+                  backgroundColor: _primaryBlue,
+
                   foregroundColor: Colors.white,
                   elevation: 4,
                   shape: RoundedRectangleBorder(

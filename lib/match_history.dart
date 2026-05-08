@@ -2,6 +2,8 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+const Color _primaryBlue = Color.fromARGB(255, 61, 180, 235);
+
 // ---------------- MATCH RECORD MODEL ----------------
 class MatchRecord {
   final String id;
@@ -95,6 +97,15 @@ class HistoryScreen extends StatefulWidget {
 class _HistoryScreenState extends State<HistoryScreen> {
   List<MatchRecord> _matches = [];
   bool _loading = true;
+
+  String _formatTeam(String p1, String p2) {
+    final n1 = p1.trim();
+    final n2 = p2.trim();
+    if (n1.isEmpty && n2.isEmpty) return '';
+    if (n2.isEmpty) return n1;
+    if (n1.isEmpty) return n2;
+    return '$n1 & $n2';
+  }
 
   @override
   void initState() {
@@ -204,14 +215,20 @@ class _HistoryScreenState extends State<HistoryScreen> {
               background: Container(
                 decoration: BoxDecoration(
                   gradient: LinearGradient(
-                    colors: [Colors.green[800]!, Colors.green[600]!],
+                    colors: [_primaryBlue, _primaryBlue],
                     begin: Alignment.topLeft,
                     end: Alignment.bottomRight,
                   ),
                 ),
               ),
             ),
-            actions: const [],
+            actions: [
+              IconButton(
+                icon: const Icon(Icons.delete_sweep),
+                tooltip: 'Clear History',
+                onPressed: _confirmClear,
+              ),
+            ],
           ),
           if (_loading)
             const SliverFillRemaining(
@@ -258,8 +275,8 @@ class _HistoryScreenState extends State<HistoryScreen> {
   }
 
   Widget _buildMatchCard(MatchRecord match) {
-    final teamA = '${match.players[0]} & ${match.players[1]}';
-    final teamB = '${match.players[2]} & ${match.players[3]}';
+    final teamA = _formatTeam(match.players[0], match.players[1]);
+    final teamB = _formatTeam(match.players[2], match.players[3]);
     final isTeamAWinner = match.winner == 'A';
 
     return Card(
